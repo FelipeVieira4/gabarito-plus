@@ -66,6 +66,111 @@ void main() {
       expect(versoes.map((v) => v.codigo), ['K7Q2XM-01', 'K7Q2XM-02']);
       expect(versoes.map((v) => v.aluno.nome), ['Ana', 'Bruno']);
     });
+
+    Prova provaComSorteio({
+      required int alunos,
+      required int banco,
+      required int porProva,
+      bool embaralhar = true,
+    }) =>
+        Prova(
+          id: 'K7Q2XM',
+          titulo: 'Prova Sorteada',
+          turma: Turma(
+            id: 'turma-1',
+            nomeTurma: '3º Ano A',
+            listaAlunos: [
+              for (var i = 0; i < alunos; i++)
+                Aluno(id: 'aluno-$i', nome: 'Aluno $i', email: '', isAtivo: true),
+            ],
+            ativa: true,
+          ),
+          assunto: Assunto(id: 'assunto-1', nome: 'Soma', questoes: const []),
+          questoes: [for (var i = 0; i < banco; i++) questao('q$i', i % 4)],
+          questoesPorProva: porProva,
+          embaralharQuestoes: embaralhar,
+          embaralharAlternativas: embaralhar,
+        );
+
+    test('cada versão sorteia a quantidade pedida, sem repetir questão', () {
+      final versoes = Embaralhador.gerarVersoes(
+        provaComSorteio(alunos: 30, banco: 12, porProva: 5),
+        Random(7),
+      );
+
+      for (final versao in versoes) {
+        final ids = versao.questoes.map((q) => q.questao.id).toList();
+        expect(ids, hasLength(5));
+        expect(ids.toSet(), hasLength(5));
+      }
+    });
+
+    test('o banco é usado de forma equilibrada entre as versões', () {
+      final versoes = Embaralhador.gerarVersoes(
+        provaComSorteio(alunos: 12, banco: 12, porProva: 4),
+        Random(3),
+      );
+
+      final usos = <String, int>{};
+      for (final q in versoes.expand((v) => v.questoes)) {
+        usos.update(q.questao.id, (n) => n + 1, ifAbsent: () => 1);
+      }
+      // 12 versões x 4 questões = 48 usos para 12 questões: 4 cada, +-1.
+      expect(usos.keys, hasLength(12));
+      expect(usos.values.every((n) => n >= 3 && n <= 5), isTrue);
+    });
+
+    test('versões seguidas recebem questões diferentes', () {
+      final versoes = Embaralhador.gerarVersoes(
+        provaComSorteio(alunos: 2, banco: 10, porProva: 5),
+        Random(1),
+      );
+
+      final primeira = versoes[0].questoes.map((q) => q.questao.id).toSet();
+      final segunda = versoes[1].questoes.map((q) => q.questao.id).toSet();
+      expect(primeira.intersection(segunda), isEmpty);
+    });
+
+    test('sem embaralhar, as sorteadas mantêm a ordem do banco', () {
+      final versoes = Embaralhador.gerarVersoes(
+        provaComSorteio(alunos: 5, banco: 9, porProva: 4, embaralhar: false),
+        Random(5),
+      );
+
+      for (final versao in versoes) {
+        final posicoes = versao.questoes
+            .map((q) => int.parse(q.questao.id.substring(1)))
+            .toList();
+        expect(posicoes, List.of(posicoes)..sort());
+      }
+    });
+
+    test('quantidade igual ao banco gera todas as questões em toda versão', () {
+      final prova = provaComSorteio(alunos: 3, banco: 4, porProva: 4);
+      expect(prova.sorteiaQuestoes, isFalse);
+
+      for (final versao in Embaralhador.gerarVersoes(prova)) {
+        expect(versao.questoes, hasLength(4));
+      }
+      expect(prova.toMap()['questoesPorProva'], 4);
+    });
+
+    test('o gabarito de cada versão bate com as questões sorteadas', () {
+      final prova = provaComSorteio(alunos: 6, banco: 8, porProva: 3);
+      for (final versao in Embaralhador.gerarVersoes(prova, Random(9))) {
+        final gabarito = GabaritoLido.daVersao(
+          provaId: prova.id,
+          dadosProva: prova.toMap(),
+          versao: versao,
+        );
+        expect(gabarito.totalQuestoes, 3);
+        for (var i = 0; i < 3; i++) {
+          final q = versao.questoes[i];
+          final correta = q.questao.alternativas.firstWhere((a) => a.isCorreta);
+          expect(q.alternativas[gabarito.respostasCorretas[i]], correta.texto);
+        }
+      }
+    });
   });
 
   group('GabaritoLido.daVersao', () {
