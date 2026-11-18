@@ -2,19 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:gabarito_plus/features/correcao_prova/services/correcao_repository.dart';
 import 'package:gabarito_plus/features/correcao_prova/services/correcao_service.dart';
 import 'package:gabarito_plus/features/correcao_prova/views/correcao/consulta_provas_corrigidas.dart';
+import 'package:gabarito_plus/features/correcao_prova/views/correcao/leitor_qr_code.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/correcao.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/gabarito_lido.dart';
 import 'package:gabarito_plus/features/geracao_prova/service/prova_repository.dart';
 
-/// Enquanto a câmera real não está integrada, o código da prova é digitado
-/// e a folha começa em branco, com as marcações feitas na conferência.
-/// Quando o `mobile_scanner` for plugado, basta virar esta flag.
-const bool kCameraDisponivel = false;
-
 enum _Etapa { lendoQr, lendoFolha, conferindo, resultado }
 
 class CameraCorrecao extends StatefulWidget {
-  const CameraCorrecao({super.key});
+  const CameraCorrecao({super.key, this.usarCamera});
+
+  final bool? usarCamera;
 
   @override
   State<CameraCorrecao> createState() => _CameraCorrecaoState();
@@ -40,6 +38,10 @@ class _CameraCorrecaoState extends State<CameraCorrecao> {
 
     if (codigo == null || !mounted) return;
 
+    await _buscarCodigo(codigo);
+  }
+
+  Future<void> _buscarCodigo(String codigo) async {
     GabaritoLido? gabarito;
     try {
       gabarito = await ProvaRepository.instancia.buscarGabarito(codigo);
@@ -58,7 +60,7 @@ class _CameraCorrecaoState extends State<CameraCorrecao> {
       return;
     }
 
-    _aplicarGabarito(gabarito);
+    await _aplicarGabarito(gabarito);
   }
 
   Future<void> _aplicarGabarito(GabaritoLido gabarito) async {
@@ -246,15 +248,22 @@ class _CameraCorrecaoState extends State<CameraCorrecao> {
     }
   }
 
+  bool get _usarCamera => widget.usarCamera ?? leitorQrSuportado;
+
   Widget _buildLeituraQr() {
+    const instrucao = 'Aponte para o QR Code do gabarito';
+
     return Column(
       children: [
-        const Expanded(
-          child: _AreaCamera(
-            icone: Icons.qr_code_scanner,
-            instrucao: 'Aponte para o QR Code do gabarito',
-            proporcaoMoldura: 1,
-          ),
+        Expanded(
+          child: _usarCamera
+              ? LeitorQrCode(instrucao: instrucao, onCodigoLido: _buscarCodigo)
+              : const _AreaCamera(
+                  icone: Icons.qr_code_scanner,
+                  instrucao: instrucao,
+                  proporcaoMoldura: 1,
+                  observacao: 'Câmera indisponível nesta plataforma',
+                ),
         ),
         _PainelAcoes(
           children: [
@@ -288,6 +297,7 @@ class _CameraCorrecaoState extends State<CameraCorrecao> {
                 'Enquadre a folha de respostas de '
                 '${gabarito.nomeAluno.split(' ').first}',
             proporcaoMoldura: 3 / 4,
+            observacao: 'Leitura automática da folha ainda não disponível',
           ),
         ),
         _PainelAcoes(
@@ -393,21 +403,18 @@ class _CameraCorrecaoState extends State<CameraCorrecao> {
   }
 }
 
-/// Espaço reservado para o preview da câmera.
-///
-/// Hoje desenha só a moldura de enquadramento. O preview real do
-/// `mobile_scanner` (QR) e da foto da folha entram aqui, sem mexer no resto da
-/// tela.
 class _AreaCamera extends StatelessWidget {
   const _AreaCamera({
     required this.icone,
     required this.instrucao,
     required this.proporcaoMoldura,
+    this.observacao,
   });
 
   final IconData icone;
   final String instrucao;
   final double proporcaoMoldura;
+  final String? observacao;
 
   @override
   Widget build(BuildContext context) {
@@ -438,11 +445,12 @@ class _AreaCamera extends StatelessWidget {
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.white, fontSize: 15),
           ),
-          if (!kCameraDisponivel) ...[
+          if (observacao != null) ...[
             const SizedBox(height: 8),
-            const Text(
-              'Câmera ainda não conectada',
-              style: TextStyle(color: Colors.white38, fontSize: 12),
+            Text(
+              observacao!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white38, fontSize: 12),
             ),
           ],
         ],
