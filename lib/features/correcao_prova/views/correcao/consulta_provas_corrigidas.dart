@@ -609,18 +609,6 @@ class _CardCorrecao extends StatelessWidget {
   final VoidCallback onRemover;
   final VoidCallback? onTap;
 
-  String _formatarNota(double valor) =>
-      valor.toStringAsFixed(1).replaceAll('.', ',');
-
-  String _formatarDataHora(DateTime data) {
-    final dia = data.day.toString().padLeft(2, '0');
-    final mes = data.month.toString().padLeft(2, '0');
-    final ano = data.year;
-    final hora = data.hour.toString().padLeft(2, '0');
-    final minuto = data.minute.toString().padLeft(2, '0');
-    return '$dia/$mes/$ano às $hora:$minuto';
-  }
-
   @override
   Widget build(BuildContext context) {
     final aprovado = correcao.nota >= notaCorte;
@@ -630,177 +618,43 @@ class _CardCorrecao extends StatelessWidget {
       key: ValueKey('card-correcao-${correcao.codigoVersao}'),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
+      child: ListTile(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                width: 64,
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-                decoration: BoxDecoration(
-                  color: corNota.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: corNota.withValues(alpha: 0.3)),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _formatarNota(correcao.nota),
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: corNota,
-                        height: 1.1,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'nota',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: corNota,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            correcao.nomeAluno,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: corNota.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            aprovado ? 'Aprovado' : 'Abaixo da média',
-                            style: TextStyle(
-                              color: corNota,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${correcao.tituloProva} • ${correcao.nomeTurma}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade700,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 6,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            correcao.codigoVersao,
-                            style: const TextStyle(
-                              fontFamily: 'monospace',
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        _BadgeContagem(
-                          texto: '${correcao.acertos} acertos',
-                          cor: Colors.green.shade700,
-                        ),
-                        _BadgeContagem(
-                          texto: '${correcao.erros} erros',
-                          cor: Colors.red.shade700,
-                        ),
-                        if (correcao.emBranco > 0)
-                          _BadgeContagem(
-                            texto: '${correcao.emBranco} em branco',
-                            cor: Colors.grey.shade700,
-                          ),
-                        Text(
-                          _formatarDataHora(correcao.dataHora),
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                tooltip: 'Remover correção',
-                icon: const Icon(Icons.delete_outline),
-                color: Colors.grey.shade600,
-                onPressed: onRemover,
-              ),
-            ],
+        contentPadding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
+        leading: Container(
+          width: 52,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: corNota.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: corNota.withValues(alpha: 0.3)),
+          ),
+          child: Text(
+            correcao.nota.toStringAsFixed(1).replaceAll('.', ','),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: corNota,
+            ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _BadgeContagem extends StatelessWidget {
-  const _BadgeContagem({required this.texto, required this.cor});
-
-  final String texto;
-  final Color cor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: cor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        texto,
-        style: TextStyle(
-          color: cor,
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
+        title: Text(
+          correcao.nomeAluno,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          correcao.nomeTurma,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: IconButton(
+          tooltip: 'Remover correção',
+          icon: const Icon(Icons.delete_outline),
+          color: Colors.grey.shade600,
+          onPressed: onRemover,
         ),
       ),
     );

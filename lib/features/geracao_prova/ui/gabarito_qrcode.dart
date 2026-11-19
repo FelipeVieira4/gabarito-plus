@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:gabarito_plus/features/geracao_prova/data/prova.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/versao_prova.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 class GabaritoQrCode extends StatelessWidget {
-  const GabaritoQrCode({super.key, required this.prova, required this.versao});
+  const GabaritoQrCode({
+    super.key,
+    required this.tituloProva,
+    required this.nomeTurma,
+    required this.versao,
+  });
 
-  final Prova prova;
+  final String tituloProva;
+  final String nomeTurma;
   final VersaoProva versao;
 
   @override
@@ -21,9 +26,9 @@ class GabaritoQrCode extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Text(prova.titulo, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text(tituloProva, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
-            Text(prova.turma.nomeTurma, style: TextStyle(color: Colors.grey[600])),
+            Text(nomeTurma, style: TextStyle(color: Colors.grey[600])),
             const SizedBox(height: 24),
             Card(
               elevation: 2,

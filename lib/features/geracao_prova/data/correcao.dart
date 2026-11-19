@@ -162,4 +162,17 @@ class Correcao {
       dataHora: dataHora,
     );
   }
+
+  Correcao comTituloProva(String novoTitulo) => Correcao(
+        codigoVersao: codigoVersao,
+        provaId: provaId,
+        turmaId: turmaId,
+        alunoId: alunoId,
+        tituloProva: novoTitulo,
+        nomeTurma: nomeTurma,
+        nomeAluno: nomeAluno,
+        respostas: respostas,
+        quantidadeAlternativas: quantidadeAlternativas,
+        dataHora: dataHora,
+      );
 }

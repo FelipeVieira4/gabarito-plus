@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gabarito_plus/features/correcao_prova/views/correcao/camera_correcao.dart';
-import 'package:gabarito_plus/features/correcao_prova/views/correcao/consulta_provas_corrigidas.dart';
 import 'package:gabarito_plus/features/correcao_prova/views/disciplinas/consulta_disciplinas.dart';
 import 'package:gabarito_plus/features/dashboard/ui/dashboard_alunos.dart';
-import 'package:gabarito_plus/features/geracao_prova/ui/configuracao_prova.dart';
+import 'package:gabarito_plus/features/dashboard/ui/dashboard_provas.dart';
 import 'package:gabarito_plus/features/professor/ui/profile_view.dart';
 import 'package:gabarito_plus/features/questoes/ui/consulta_questoes.dart';
 import 'package:gabarito_plus/features/auth/service/auth_service.dart';
@@ -116,13 +115,13 @@ class DashboardView extends StatelessWidget {
                         ),
                         _buildMenuCard(
                           context,
-                          'Gerar Provas',
+                          'Provas',
                           Icons.description,
                           Colors.green,
                           () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const ConfiguracaoProva(),
+                              builder: (context) => const DashboardProvas(),
                             ),
                           ),
                         ),
@@ -135,19 +134,6 @@ class DashboardView extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (context) => const CameraCorrecao(),
-                            ),
-                          ),
-                        ),
-                        _buildMenuCard(
-                          context,
-                          'Provas Corrigidas',
-                          Icons.fact_check,
-                          Colors.teal,
-                          () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const ConsultaProvasCorrigidasView(),
                             ),
                           ),
                         ),

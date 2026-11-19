@@ -278,4 +278,80 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'repositório edita título, substitui versões e exclui a prova',
+    skip: _semCredenciais,
+    (tester) async {
+      final correcoes = CorrecaoRepositoryFirestore();
+      final repositorio = ProvaRepositoryFirestore(correcoes: correcoes);
+      final provaId = 'TESTE${gerarIdProva()}';
+
+      Prova provaCom(List<Aluno> alunos) => Prova(
+            id: provaId,
+            titulo: 'Prova de Teste',
+            turma: Turma(
+              id: '$codigo-TURMA',
+              nomeTurma: 'Turma de Teste',
+              listaAlunos: alunos,
+              ativa: true,
+            ),
+            assunto: Assunto(id: '$codigo-ASSUNTO', nome: 'Soma', questoes: [questao]),
+            questoes: [questao],
+            embaralharQuestoes: false,
+            embaralharAlternativas: false,
+          );
+
+      final outro = Aluno(id: '$codigo-ALUNO2', nome: 'Outro Aluno', email: '', isAtivo: true);
+      final original = provaCom([aluno, outro]);
+      final provaRef = db.collection('provas').doc(provaId);
+      gravados.addAll([
+        provaRef.collection('versoes').doc('$provaId-01'),
+        provaRef.collection('versoes').doc('$provaId-02'),
+        provaRef,
+        db.collection('correcoes').doc('$provaId-01'),
+      ]);
+
+      await repositorio.salvar(original, Embaralhador.gerarVersoes(original));
+      expect((await repositorio.listar()).any((p) => p.id == provaId), isTrue);
+      expect((await repositorio.buscar(provaId))!.criadaEm, isNotNull);
+
+      // turma menor: a versão 02 deixa de existir
+      final editada = provaCom([aluno]);
+      await repositorio.substituir(editada, Embaralhador.gerarVersoes(editada));
+      final versoes = await repositorio.listarVersoes(provaId);
+      expect(versoes.map((v) => v.codigo), ['$provaId-01']);
+      expect((await repositorio.buscar(provaId))!.editadaEm, isNotNull);
+
+      // com uma correção, o título ainda muda e é propagado
+      await correcoes.salvar(Correcao(
+        codigoVersao: '$provaId-01',
+        provaId: provaId,
+        tituloProva: 'Prova de Teste',
+        nomeTurma: 'Turma de Teste',
+        nomeAluno: aluno.nome,
+        respostas: const [],
+        quantidadeAlternativas: 4,
+        dataHora: DateTime(2026, 11, 18),
+      ));
+      expect(await correcoes.contarPorProva(provaId), 1);
+
+      await repositorio.atualizarTitulo(provaId, 'Título Novo');
+      expect((await repositorio.buscar(provaId))!.titulo, 'Título Novo');
+      expect((await correcoes.obterPorCodigo('$provaId-01'))!.tituloProva, 'Título Novo');
+
+      // mas substituir e excluir são recusados
+      await expectLater(
+        repositorio.substituir(editada, Embaralhador.gerarVersoes(editada)),
+        throwsStateError,
+      );
+      await expectLater(repositorio.excluir(provaId), throwsStateError);
+
+      // sem a correção, exclui tudo
+      await correcoes.remover('$provaId-01');
+      await repositorio.excluir(provaId);
+      expect(await repositorio.buscar(provaId), isNull);
+      expect(await repositorio.listarVersoes(provaId), isEmpty);
+    },
+  );
 }

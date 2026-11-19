@@ -11,7 +11,11 @@ import 'package:gabarito_plus/features/turma/service/turma_service.dart';
 
 
 class ConfiguracaoProva extends StatefulWidget {
-  const ConfiguracaoProva({super.key});
+  const ConfiguracaoProva({super.key, this.provaEditada});
+
+  /// Prova já salva a editar. Os campos vêm preenchidos e, ao regerar, as
+  /// versões mantêm os códigos. A tela fecha devolvendo `true` ao salvar.
+  final ProvaSalva? provaEditada;
 
   @override
   State<ConfiguracaoProva> createState() => _ConfiguracaoProvaState();
@@ -38,11 +42,69 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
   bool _embaralharQuestoes = true;
   bool _embaralharAlternativas = true;
 
+  bool get _edicao => widget.provaEditada != null;
+  bool _edicaoPreenchida = false;
+
   @override
   void initState() {
     super.initState();
+    final prova = widget.provaEditada;
+    if (prova != null) {
+      _tituloController.text = prova.titulo;
+      _embaralharQuestoes = prova.embaralharQuestoes;
+      _embaralharAlternativas = prova.embaralharAlternativas;
+    }
     _carregarDisciplinas();
     _carregarTurmas();
+  }
+
+  /// Seleciona turma, disciplina, assunto e questões da prova editada. Roda
+  /// uma vez, quando turmas e disciplinas terminam de carregar. O que não
+  /// existe mais fica sem seleção, com um aviso.
+  void _preencherEdicao() {
+    final prova = widget.provaEditada;
+    if (prova == null || _edicaoPreenchida) return;
+    if (_carregandoTurmas || _carregandoDisciplinas) return;
+    _edicaoPreenchida = true;
+
+    final avisos = <String>[];
+
+    final turma = _turmas.where((t) => t.id == prova.turmaId).firstOrNull;
+    if (turma == null) avisos.add('a turma ${prova.nomeTurma} não está mais ativa');
+
+    Disciplina? disciplina;
+    Assunto? assunto;
+    for (final d in _disciplinas) {
+      assunto = d.assuntos.where((a) => a.id == prova.assuntoId).firstOrNull;
+      if (assunto != null) {
+        disciplina = d;
+        break;
+      }
+    }
+    if (assunto == null) avisos.add('o assunto ${prova.nomeAssunto} foi excluído');
+
+    final questoes = (assunto?.questoes ?? const <Questao>[])
+        .where((q) => prova.questoesIds.contains(q.id))
+        .toList();
+    final faltando = assunto == null ? 0 : prova.questoesIds.length - questoes.length;
+    if (faltando > 0) {
+      avisos.add(faltando == 1
+          ? '1 questão foi excluída do banco'
+          : '$faltando questões foram excluídas do banco');
+    }
+
+    setState(() {
+      _turmaSelecionada = turma;
+      _disciplinaSelecionada = disciplina;
+      _assuntoSelecionado = assunto;
+      _questoesSelecionadas
+        ..clear()
+        ..addAll(questoes);
+    });
+
+    if (avisos.isNotEmpty) {
+      _mostrarAviso('Revise a prova: ${avisos.join('; ')}.');
+    }
   }
 
   Future<void> _carregarTurmas() async {
@@ -58,6 +120,7 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
       setState(() => _carregandoTurmas = false);
       _mostrarAviso('Erro ao carregar turmas: $e');
     }
+    _preencherEdicao();
   }
 
   Future<void> _carregarDisciplinas() async {
@@ -73,6 +136,7 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
       setState(() => _carregandoDisciplinas = false);
       _mostrarAviso('Erro ao carregar disciplinas: $e');
     }
+    _preencherEdicao();
   }
 
   @override
@@ -91,7 +155,7 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
         .toList();
   }
 
-  void _gerarProvas() {
+  Future<void> _gerarProvas() async {
     if (!_formKey.currentState!.validate()) return;
 
     if (_turmaSelecionada == null) {
@@ -120,7 +184,8 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
     }
 
     final prova = Prova(
-      id: gerarIdProva(),
+      // na edição o id se mantém, e com ele os códigos das versões
+      id: widget.provaEditada?.id ?? gerarIdProva(),
       titulo: _tituloController.text.trim(),
       turma: _turmaSelecionada!,
       assunto: _assuntoSelecionado!,
@@ -129,12 +194,14 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
       embaralharAlternativas: _embaralharAlternativas,
     );
 
-    Navigator.push(
+    final salvou = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (context) => VisualizacaoEmbaralhamento(prova: prova),
+        builder: (context) =>
+            VisualizacaoEmbaralhamento(prova: prova, edicao: _edicao),
       ),
     );
+    if (salvou == true && _edicao && mounted) Navigator.pop(context, true);
   }
 
   void _mostrarAviso(String mensagem) {
@@ -157,7 +224,7 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Configuração da Prova'),
+        title: Text(_edicao ? 'Editar Prova' : 'Configuração da Prova'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -185,6 +252,9 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
 
               // Seleção de Turma
               DropdownButtonFormField<Turma>(
+                // initialValue só é lido ao criar o campo: a key o recria
+                // quando a seleção muda por código (preenchimento da edição)
+                key: ValueKey('turma-${_turmaSelecionada?.id}'),
                 initialValue: _turmaSelecionada,
                 isExpanded: true,
                 decoration: const InputDecoration(
@@ -211,6 +281,9 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
 
               // Seleção de Disciplina
               DropdownButtonFormField<Disciplina>(
+                // initialValue só é lido ao criar o campo: a key o recria
+                // quando a seleção muda por código (preenchimento da edição)
+                key: ValueKey('disciplina-${_disciplinaSelecionada?.id}'),
                 initialValue: _disciplinaSelecionada,
                 isExpanded: true,
                 decoration: const InputDecoration(
@@ -244,6 +317,9 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
 
               // Seleção de Assunto
               DropdownButtonFormField<Assunto>(
+                // initialValue só é lido ao criar o campo: a key o recria
+                // quando a seleção muda por código (preenchimento da edição)
+                key: ValueKey('assunto-${_assuntoSelecionado?.id}'),
                 initialValue: _assuntoSelecionado,
                 isExpanded: true,
                 decoration: const InputDecoration(
@@ -285,7 +361,7 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
               ElevatedButton.icon(
                 onPressed: _gerarProvas,
                 icon: const Icon(Icons.auto_awesome),
-                label: const Text('Gerar Provas da Turma'),
+                label: Text(_edicao ? 'Regerar Provas da Turma' : 'Gerar Provas da Turma'),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),

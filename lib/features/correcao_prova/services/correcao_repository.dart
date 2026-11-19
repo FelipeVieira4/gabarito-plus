@@ -17,7 +17,16 @@ abstract class CorrecaoRepository {
   Future<void> salvar(Correcao correcao);
 
   Future<void> remover(String codigoVersao);
+
+  /// Quantas versões da prova já foram corrigidas. Usa o prefixo do código
+  /// (`PROVAID-`), que também vale para correções antigas sem `provaId`.
+  Future<int> contarPorProva(String provaId);
 }
+
+/// Faixa de ids de documento cujas versões pertencem à prova [provaId].
+/// `-` é seguido por `.` na tabela ASCII, então `[ID-, ID.)` cobre `ID-*`.
+(String, String) faixaCodigosDaProva(String provaId) =>
+    ('$provaId-', '$provaId.');
 
 class CorrecaoRepositoryFirestore implements CorrecaoRepository {
   // late: só acessa o Firebase no primeiro uso, não ao criar a instância
@@ -50,4 +59,15 @@ class CorrecaoRepositoryFirestore implements CorrecaoRepository {
   @override
   Future<void> remover(String codigoVersao) =>
       _correcoes.doc(codigoVersao).delete();
+
+  @override
+  Future<int> contarPorProva(String provaId) async {
+    final (inicio, fim) = faixaCodigosDaProva(provaId);
+    final snap = await _correcoes
+        .where(FieldPath.documentId, isGreaterThanOrEqualTo: inicio)
+        .where(FieldPath.documentId, isLessThan: fim)
+        .count()
+        .get();
+    return snap.count ?? 0;
+  }
 }

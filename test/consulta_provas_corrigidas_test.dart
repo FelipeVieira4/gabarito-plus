@@ -45,7 +45,7 @@ void main() {
     // Por padrão ordena por maior nota: Ana Maria (10,0) vem no topo
     expect(find.text('Ana Maria'), findsOneWidget);
     expect(find.text('10,0'), findsOneWidget);
-    expect(find.text('ES2025A-002'), findsOneWidget);
+    expect(find.byKey(const ValueKey('card-correcao-ES2025A-002')), findsOneWidget);
   });
 
   testWidgets('filtra correções por busca de nome ou código da versão',
@@ -56,7 +56,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Ricardo Diaz'), findsOneWidget);
-    expect(find.text('ES2025A-005'), findsOneWidget);
+    // o código não aparece no card, mas a busca o encontra
+    expect(find.byKey(const ValueKey('card-correcao-ES2025A-005')), findsOneWidget);
     expect(find.text('Ana Maria'), findsNothing);
 
     // O resumo reflete só a prova filtrada (Ricardo tirou 9,0: aprovado)
@@ -130,11 +131,16 @@ void main() {
     expect(selecionada!.nomeAluno, 'Ana Maria');
   });
 
-  testWidgets('DashboardView possui atalho para Provas Corrigidas',
+  testWidgets('DashboardView leva a Provas Corrigidas pelo menu de Provas',
       (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: DashboardView(nomeUsuario: 'Prof. Teste')),
     );
+    await tester.pumpAndSettle();
+
+    final cardProvas = find.text('Provas');
+    await tester.ensureVisible(cardProvas);
+    await tester.tap(cardProvas);
     await tester.pumpAndSettle();
 
     final cardConsulta = find.text('Provas Corrigidas');

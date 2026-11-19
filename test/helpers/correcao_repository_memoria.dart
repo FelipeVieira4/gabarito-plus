@@ -42,4 +42,9 @@ class CorrecaoRepositoryMemoria implements CorrecaoRepository {
   Future<void> remover(String codigoVersao) async {
     _correcoes.removeWhere((correcao) => correcao.codigoVersao == codigoVersao);
   }
+
+  @override
+  Future<int> contarPorProva(String provaId) async => _correcoes
+      .where((correcao) => correcao.codigoVersao.startsWith('$provaId-'))
+      .length;
 }
