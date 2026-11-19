@@ -3,9 +3,10 @@ import 'package:gabarito_plus/features/disciplina/data/assunto.dart';
 import 'package:gabarito_plus/features/disciplina/data/disciplina.dart';
 import 'package:gabarito_plus/features/disciplina/service/disciplinas_service.dart';
 import 'package:gabarito_plus/features/questoes/data/questao.dart';
+import 'package:gabarito_plus/core/professor_db.dart';
 
 class QuestoesService {
-  final _questoes = FirebaseFirestore.instance.collection('questoes');
+  CollectionReference<Map<String, dynamic>> get _questoes => ProfessorDb.colecao('questoes');
   final _disciplinasService = DisciplinasService();
 
   Future<List<Disciplina>> obterDisciplinas() {
