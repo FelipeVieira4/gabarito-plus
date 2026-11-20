@@ -1,8 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:gabarito_plus/features/aluno/data/aluno.dart';
+import 'package:gabarito_plus/core/professor_db.dart';
 
 class AlunoService {
-  final _col = FirebaseFirestore.instance.collection('alunos');
+  CollectionReference<Map<String, dynamic>> get _col => ProfessorDb.colecao('alunos');
 
   /// Lista em tempo real. O filtro por nome é feito no app,
   /// porque o Firestore não tem "contains" nativo.

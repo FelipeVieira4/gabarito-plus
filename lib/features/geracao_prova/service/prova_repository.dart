@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/gabarito_lido.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/prova.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/versao_prova.dart';
+import 'package:gabarito_plus/core/professor_db.dart';
 
 /// Sem 0/O, 1/I/L: o código é digitado à mão na correção.
 const alfabetoCodigoProva = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -33,9 +34,10 @@ abstract class ProvaRepository {
 }
 
 class ProvaRepositoryFirestore implements ProvaRepository {
-  // late: só acessa o Firebase no primeiro uso, não ao criar a instância
-  late final _db = FirebaseFirestore.instance;
-  late final _provas = _db.collection('provas');
+  // getters (e não late final): o repositório é estático e o professor
+  // logado pode mudar; o Firebase só é acessado no uso.
+  FirebaseFirestore get _db => FirebaseFirestore.instance;
+  CollectionReference<Map<String, dynamic>> get _provas => ProfessorDb.colecao('provas');
 
   @override
   Future<void> salvar(Prova prova, List<VersaoProva> versoes) async {
