@@ -1,7 +1,10 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:gabarito_plus/features/correcao_prova/services/correcao_repository.dart';
 import 'package:gabarito_plus/features/correcao_prova/services/correcao_service.dart';
+import 'package:gabarito_plus/features/correcao_prova/services/omr_service.dart';
 import 'package:gabarito_plus/features/correcao_prova/views/correcao/consulta_provas_corrigidas.dart';
+import 'package:gabarito_plus/features/correcao_prova/views/correcao/leitor_folha_camera.dart';
 import 'package:gabarito_plus/features/correcao_prova/views/correcao/leitor_qr_code.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/correcao.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/gabarito_lido.dart';
@@ -20,6 +23,7 @@ class CameraCorrecao extends StatefulWidget {
 
 class _CameraCorrecaoState extends State<CameraCorrecao> {
   final _service = CorrecaoService();
+  final _omrService = OmrService();
   final _repository = CorrecaoRepository.instancia;
 
   _Etapa _etapa = _Etapa.lendoQr;
@@ -29,6 +33,7 @@ class _CameraCorrecaoState extends State<CameraCorrecao> {
   bool _jaCorrigida = false;
   bool _folhaEmBranco = false;
   bool _salvando = false;
+  bool _lendoOmr = false;
 
   Future<void> _digitarCodigoManualmente() async {
     final codigo = await showDialog<String>(
@@ -93,6 +98,43 @@ class _CameraCorrecaoState extends State<CameraCorrecao> {
 
     _folhaEmBranco = true;
     _corrigir(gabarito, folha);
+  }
+
+  Future<void> _processarImagemFolha(Uint8List imageBytes) async {
+    final gabarito = _gabarito!;
+    setState(() => _lendoOmr = true);
+
+    try {
+      final resultado = await _omrService.lerFolhaDeRespostas(
+        imageBytes: imageBytes,
+        totalQuestoes: gabarito.totalQuestoes,
+        quantidadeAlternativas: gabarito.quantidadeAlternativas,
+      );
+
+      if (!mounted) return;
+      final folha = FolhaLida(
+        codigoVersao: gabarito.codigoVersao,
+        respostasMarcadas: resultado.respostasMarcadas,
+      );
+
+      _folhaEmBranco = false;
+      _corrigir(gabarito, folha);
+
+      if (resultado.questoesComAlerta.isNotEmpty) {
+        _avisar(
+          'Atenção: dupla marcação detectada nas questões '
+          '${resultado.questoesComAlerta.join(', ')}. Confira antes de salvar.',
+        );
+      }
+    } on OmrException catch (erro) {
+      if (!mounted) return;
+      _avisar(erro.mensagem);
+    } catch (_) {
+      if (!mounted) return;
+      _avisar('Erro ao processar a imagem da folha. Tente novamente.');
+    } finally {
+      if (mounted) setState(() => _lendoOmr = false);
+    }
   }
 
   void _corrigir(GabaritoLido gabarito, FolhaLida folha) {
@@ -291,14 +333,19 @@ class _CameraCorrecaoState extends State<CameraCorrecao> {
                 'substitui o resultado anterior.',
           ),
         Expanded(
-          child: _AreaCamera(
-            icone: Icons.document_scanner,
-            instrucao:
-                'Enquadre a folha de respostas de '
-                '${gabarito.nomeAluno.split(' ').first}',
-            proporcaoMoldura: 3 / 4,
-            observacao: 'Leitura automática da folha ainda não disponível',
-          ),
+          child: _usarCamera 
+              ? LeitorFolhaCamera(
+                  instrucao: 'Enquadre a folha de respostas de ${gabarito.nomeAluno.split(' ').first}',
+                  onImagemCapturada: _processarImagemFolha,
+                )
+              : _AreaCamera(
+                  icone: Icons.document_scanner,
+                  instrucao:
+                      'Enquadre a folha de respostas de '
+                      '${gabarito.nomeAluno.split(' ').first}',
+                  proporcaoMoldura: 3 / 4,
+                  observacao: 'Leitura automática da folha ainda não disponível',
+                ),
         ),
         _PainelAcoes(
           children: [
