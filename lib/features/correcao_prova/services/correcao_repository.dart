@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/correcao.dart';
+import 'package:gabarito_plus/core/professor_db.dart';
 
 /// Ponto único de acesso às correções salvas. As telas usam [instancia];
 /// os testes de widget trocam por uma versão em memória, já que não
@@ -20,8 +21,9 @@ abstract class CorrecaoRepository {
 }
 
 class CorrecaoRepositoryFirestore implements CorrecaoRepository {
-  // late: só acessa o Firebase no primeiro uso, não ao criar a instância
-  late final _correcoes = FirebaseFirestore.instance.collection('correcoes');
+  // getter (e não late final): o repositório é estático e o professor
+  // logado pode mudar; o Firebase só é acessado no uso.
+  CollectionReference<Map<String, dynamic>> get _correcoes => ProfessorDb.colecao('correcoes');
 
   @override
   Future<List<Correcao>> obterTodas() async {

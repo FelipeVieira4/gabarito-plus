@@ -2,11 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:gabarito_plus/features/disciplina/data/assunto.dart';
 import 'package:gabarito_plus/features/disciplina/data/disciplina.dart';
 import 'package:gabarito_plus/features/questoes/data/questao.dart';
+import 'package:gabarito_plus/core/professor_db.dart';
 
 class DisciplinasService {
-  final _disciplinas = FirebaseFirestore.instance.collection('disciplinas');
-  final _assuntos = FirebaseFirestore.instance.collection('assuntos');
-  final _questoes = FirebaseFirestore.instance.collection('questoes');
+  CollectionReference<Map<String, dynamic>> get _disciplinas => ProfessorDb.colecao('disciplinas');
+  CollectionReference<Map<String, dynamic>> get _assuntos => ProfessorDb.colecao('assuntos');
+  CollectionReference<Map<String, dynamic>> get _questoes => ProfessorDb.colecao('questoes');
 
 
   Future<List<Disciplina>> listarDisciplinas() async {

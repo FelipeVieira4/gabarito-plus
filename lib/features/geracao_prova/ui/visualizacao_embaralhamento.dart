@@ -91,12 +91,18 @@ class _VisualizacaoEmbaralhamentoState extends State<VisualizacaoEmbaralhamento>
                     const SizedBox(height: 4),
                     Text('Assunto: ${prova.assunto.nome}'),
                     const SizedBox(height: 2),
-                    Text('${prova.turma.nomeTurma} · ${prova.questoes.length} questões · ${_versoes.length} variações geradas'),
+                    Text(
+                      prova.sorteiaQuestoes
+                          ? '${prova.turma.nomeTurma} · ${prova.quantidadeQuestoesPorVersao} de ${prova.questoes.length} questões por prova · ${_versoes.length} variações geradas'
+                          : '${prova.turma.nomeTurma} · ${prova.questoes.length} questões · ${_versoes.length} variações geradas',
+                    ),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
                       runSpacing: 4,
                       children: [
+                        if (prova.sorteiaQuestoes)
+                          _buildChip(Icons.check_circle, 'Questões sorteadas por aluno', true),
                         _buildChip(
                           prova.embaralharQuestoes ? Icons.check_circle : Icons.cancel,
                           'Ordem das questões',
@@ -130,13 +136,15 @@ class _VisualizacaoEmbaralhamentoState extends State<VisualizacaoEmbaralhamento>
                 ],
               ),
             ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Cada aluno recebe uma prova com a mesma dificuldade, mas em uma ordem diferente',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+                prova.sorteiaQuestoes
+                    ? 'Cada aluno recebe questões sorteadas do banco selecionado'
+                    : 'Cada aluno recebe uma prova com a mesma dificuldade, mas em uma ordem diferente',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ),
           ),

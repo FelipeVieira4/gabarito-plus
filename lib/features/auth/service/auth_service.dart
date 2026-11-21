@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:gabarito_plus/core/professor_db.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -28,10 +30,24 @@ class AuthService {
       if (nome != null && nome.isNotEmpty) {
         await credential.user?.updateDisplayName(nome);
       }
+      await _criarPerfil(email: email, nome: nome);
       return credential;
     } on FirebaseAuthException catch (e) {
       throw Exception(_traduzirErroAuth(e.code));
     }
+  }
+
+  /// Documento `professores/{uid}`. Os dados do professor (alunos, turmas...)
+  /// são subcoleções dele e funcionam sem este documento; ele só guarda o
+  /// perfil. Falha aqui não deve desfazer a criação da conta.
+  Future<void> _criarPerfil({required String email, String? nome}) async {
+    try {
+      await ProfessorDb.raiz.set({
+        'email': email,
+        'nome': nome ?? '',
+        'criadoEm': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (_) {}
   }
 
   Future<void> logout() async {
