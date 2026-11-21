@@ -41,6 +41,8 @@ dependencies:
   cloud_firestore: ^6.10.0
   firebase_auth: ^6.7.0
   mobile_scanner: ^7.5.0
+  opencv_dart: ^1.4.3
+  camera: ^0.11.1
 
 dev_dependencies:
   flutter_test:
