@@ -115,16 +115,19 @@ class _DesempenhoTurmasViewState extends State<DesempenhoTurmasView> {
                       icone: Icons.description_outlined,
                       cor: Colors.blue.shade700,
                     ),
-                    IndicadorResumo(
-                      rotulo: 'Melhor turma',
-                      valor: melhor == null
-                          ? '—'
-                          : '${melhor.rotulo} (${formatarNota(melhor.media)})',
-                      icone: Icons.emoji_events_outlined,
-                      cor: Colors.amber.shade800,
-                    ),
                   ],
                 ),
+                if (melhor != null) ...[
+                  const SizedBox(height: 12),
+                  // Largura inteira: nomes de turma costumam ser longos.
+                  IndicadorResumo(
+                    rotulo: 'Melhor turma • média ${formatarNota(melhor.media)}',
+                    valor: melhor.rotulo,
+                    icone: Icons.emoji_events_outlined,
+                    cor: Colors.amber.shade800,
+                    maxLinhasValor: 2,
+                  ),
+                ],
                 const SizedBox(height: 16),
                 SecaoGrafico(
                   titulo: 'Média geral das turmas',

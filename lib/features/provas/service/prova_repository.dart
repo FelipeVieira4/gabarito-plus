@@ -31,6 +31,10 @@ abstract class ProvaRepository {
 
   /// Gabarito da versão com esse código, ou null se não existir.
   Future<GabaritoLido?> buscarGabarito(String codigoVersao);
+
+  /// Versões (uma por aluno) de uma prova salva, em ordem de código.
+  /// Usado para reimprimir a prova pela consulta.
+  Future<List<VersaoProva>> buscarVersoes(String provaId);
 }
 
 class ProvaRepositoryFirestore implements ProvaRepository {
@@ -76,5 +80,13 @@ class ProvaRepositoryFirestore implements ProvaRepository {
       dadosProva: provaDoc.data()!,
       versao: VersaoProva.fromFirestore(versaoDoc),
     );
+  }
+
+  @override
+  Future<List<VersaoProva>> buscarVersoes(String provaId) async {
+    final snap = await _provas.doc(provaId).collection('versoes').get();
+    final versoes = snap.docs.map(VersaoProva.fromFirestore).toList();
+    versoes.sort((a, b) => a.codigo.compareTo(b.codigo));
+    return versoes;
   }
 }

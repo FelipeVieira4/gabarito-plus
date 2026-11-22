@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:gabarito_plus/features/correcao_prova/views/correcao/detalhes_prova_corrigida_view.dart';
+import 'package:gabarito_plus/features/disciplina/data/assunto.dart';
 import 'package:gabarito_plus/features/provas/data/desempenho.dart';
+import 'package:gabarito_plus/features/provas/data/prova.dart';
+import 'package:gabarito_plus/features/provas/pdf/exportar_pdf.dart';
+import 'package:gabarito_plus/features/provas/pdf/prova_pdf.dart';
+import 'package:gabarito_plus/features/provas/service/prova_repository.dart';
+import 'package:gabarito_plus/features/turma/data/turma.dart';
 import 'package:gabarito_plus/features/provas/ui/widgets/filtros_provas.dart';
 import 'package:gabarito_plus/features/provas/ui/widgets/graficos_notas.dart';
 
@@ -285,6 +291,40 @@ class DetalheProvaView extends StatelessWidget {
   final ProvaResumo prova;
   final List<NotaLancada> notas;
 
+  /// Reimprime as provas de todos os alunos (prova + folha de respostas),
+  /// a partir das versões salvas.
+  Future<void> _exportarPdf(BuildContext context) async {
+    // O PDF só usa título, turma, assunto e disciplina da prova.
+    final provaPdf = Prova(
+      id: prova.id,
+      titulo: prova.titulo,
+      turma: Turma(
+        id: prova.turmaId,
+        nomeTurma: prova.nomeTurma,
+        listaAlunos: const [],
+        ativa: true,
+      ),
+      assunto: Assunto(id: prova.assuntoId, nome: prova.nomeAssunto, questoes: const []),
+      disciplinaId: prova.disciplinaId,
+      nomeDisciplina: prova.nomeDisciplina,
+      questoes: const [],
+      embaralharQuestoes: false,
+      embaralharAlternativas: false,
+    );
+
+    await exportarPdf(
+      context,
+      nomeArquivo: nomeArquivoPdf('${prova.titulo}_${prova.nomeTurma}'),
+      gerar: () async {
+        final versoes = await ProvaRepository.instancia.buscarVersoes(prova.id);
+        if (versoes.isEmpty) {
+          throw Exception('as versões desta prova não foram encontradas.');
+        }
+        return ProvaPdf.todasAsProvas(provaPdf, versoes);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final media = mediaDe(notas.map((n) => n.nota));
@@ -297,9 +337,16 @@ class DetalheProvaView extends StatelessWidget {
     final notasOrdenadas = notas.map((n) => n.nota).toList()..sort();
 
     return Scaffold(
-      appBar: AppBar(title: Text(prova.titulo.isEmpty ? 'Prova ${prova.id}' : prova.titulo)),
+      appBar: AppBar(
+        title: Text(prova.titulo.isEmpty ? 'Prova ${prova.id}' : prova.titulo),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _exportarPdf(context),
+        icon: const Icon(Icons.picture_as_pdf),
+        label: const Text('Gerar PDF'),
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 900),

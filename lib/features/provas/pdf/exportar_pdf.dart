@@ -71,7 +71,11 @@ Future<void> exportarPdf(
     }
   } catch (e) {
     messenger.showSnackBar(
-      SnackBar(content: Text('Não foi possível gerar o PDF: $e')),
+      SnackBar(
+        content: Text(
+          'Não foi possível gerar o PDF: ${e.toString().replaceAll('Exception: ', '')}',
+        ),
+      ),
     );
   }
 }

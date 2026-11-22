@@ -508,12 +508,16 @@ class IndicadorResumo extends StatelessWidget {
     required this.valor,
     required this.icone,
     required this.cor,
+    this.maxLinhasValor = 1,
   });
 
   final String rotulo;
   final String valor;
   final IconData icone;
   final Color cor;
+
+  /// Mais de 1 quando o valor é um nome (ex.: nome da turma).
+  final int maxLinhasValor;
 
   @override
   Widget build(BuildContext context) {
@@ -544,7 +548,7 @@ class IndicadorResumo extends StatelessWidget {
                 ),
                 Text(
                   valor,
-                  maxLines: 1,
+                  maxLines: maxLinhasValor,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: cor),
                 ),

@@ -79,15 +79,14 @@ class ProvaPdf {
     }
   }
 
-  /// Todas as provas da turma (uma por aluno, cada uma com sua folha de
-  /// respostas) e, no fim, os gabaritos de todos em forma de matriz.
+  /// Todas as provas da turma: uma por aluno, cada uma com sua folha de
+  /// respostas. Sem gabarito (o gabarito fica só no app).
   static Future<Uint8List> todasAsProvas(Prova prova, List<VersaoProva> versoes) async {
     final tema = await _tema();
     final doc = pw.Document(title: prova.titulo, author: 'Gabarito Plus');
     for (final versao in versoes) {
       _adicionarProva(doc, tema, prova, versao);
     }
-    _adicionarMatrizGabaritos(doc, tema, prova, versoes);
     return doc.save();
   }
 
@@ -367,101 +366,6 @@ class ProvaPdf {
             'Na correção, fotografe a folha com os 4 quadrados pretos visíveis.',
             textAlign: pw.TextAlign.center,
             style: const pw.TextStyle(fontSize: 8.5, color: PdfColors.grey800),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ------------------------------------------------- gabaritos em matriz
-
-  /// Uma linha por aluno e uma coluna por questão, para economizar papel.
-  /// Muitas questões: página em paisagem e a matriz é quebrada em blocos.
-  static void _adicionarMatrizGabaritos(
-    pw.Document doc,
-    pw.ThemeData tema,
-    Prova prova,
-    List<VersaoProva> versoes,
-  ) {
-    final totalQuestoes = versoes.fold<int>(
-      0,
-      (maior, v) => v.questoes.length > maior ? v.questoes.length : maior,
-    );
-    final paisagem = totalQuestoes > 20;
-    final porBloco = paisagem ? 30 : 20;
-
-    final blocos = <pw.Widget>[];
-    for (var inicio = 0; inicio < totalQuestoes || inicio == 0; inicio += porBloco) {
-      final fim = (inicio + porBloco) < totalQuestoes ? inicio + porBloco : totalQuestoes;
-      final colunasQuestoes = fim - inicio;
-
-      blocos.add(
-        pw.TableHelper.fromTextArray(
-          headers: [
-            'Aluno',
-            'Código',
-            for (var q = inicio; q < fim; q++) '${q + 1}',
-          ],
-          data: [
-            for (final v in versoes)
-              [
-                v.aluno.nome,
-                v.codigo,
-                for (var q = inicio; q < fim; q++)
-                  q < v.questoes.length ? _letra(v.questoes[q].respostaCorreta) : '',
-              ],
-          ],
-          headerStyle: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold),
-          cellStyle: const pw.TextStyle(fontSize: 7.5),
-          headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
-          oddRowDecoration: const pw.BoxDecoration(color: PdfColors.grey100),
-          border: pw.TableBorder.all(width: 0.4, color: PdfColors.grey500),
-          cellPadding: const pw.EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-          cellAlignment: pw.Alignment.center,
-          cellAlignments: {
-            0: pw.Alignment.centerLeft,
-          },
-          columnWidths: {
-            0: const pw.FixedColumnWidth(120),
-            1: const pw.FixedColumnWidth(58),
-            for (var c = 0; c < colunasQuestoes; c++) c + 2: const pw.FlexColumnWidth(1),
-          },
-        ),
-      );
-      blocos.add(pw.SizedBox(height: 10));
-      if (totalQuestoes == 0) break;
-    }
-
-    doc.addPage(
-      pw.MultiPage(
-        theme: tema,
-        pageFormat: paisagem ? PdfPageFormat.a4.landscape : PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(28),
-        build: (context) => [
-          pw.Text(
-            versoes.length == 1 ? 'Gabarito' : 'Gabaritos',
-            style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
-          ),
-          pw.SizedBox(height: 2),
-          pw.Text(
-            [
-              prova.titulo,
-              prova.turma.nomeTurma,
-              if (prova.nomeDisciplina.isNotEmpty) prova.nomeDisciplina,
-              prova.assunto.nome,
-              '${versoes.length} ${versoes.length == 1 ? 'versão' : 'versões'}',
-            ].join(' • '),
-            style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
-          ),
-          pw.SizedBox(height: 8),
-          ...blocos,
-          pw.Text(
-            'Uso do professor: não distribuir aos alunos.',
-            style: pw.TextStyle(
-              fontSize: 7.5,
-              fontStyle: pw.FontStyle.italic,
-              color: PdfColors.grey700,
-            ),
           ),
         ],
       ),

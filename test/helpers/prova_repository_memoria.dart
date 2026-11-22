@@ -33,4 +33,13 @@ class ProvaRepositoryMemoria implements ProvaRepository {
       versao: versao,
     );
   }
+
+  @override
+  Future<List<VersaoProva>> buscarVersoes(String provaId) async {
+    final versoes = _versoes.values
+        .where((v) => v.codigo.startsWith('$provaId-'))
+        .toList();
+    versoes.sort((a, b) => a.codigo.compareTo(b.codigo));
+    return versoes;
+  }
 }
