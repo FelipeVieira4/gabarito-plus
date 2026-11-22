@@ -47,6 +47,10 @@ dependencies:
   opencv_dart: ^1.4.3
   camera: ^0.11.1
 
+  # Geração dos PDFs das provas/gabaritos e diálogo de impressão/compartilhamento
+  pdf: ^3.11.3
+  printing: ^5.14.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gabarito_plus/features/correcao_prova/services/correcao_repository.dart';
 import 'package:gabarito_plus/features/correcao_prova/services/correcao_service.dart';
-import 'package:gabarito_plus/features/correcao_prova/views/correcao/camera_correcao.dart';
+import 'package:gabarito_plus/features/correcao_prova/ui/camera_correcao.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/embaralhador.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/gabarito_lido.dart';
-import 'package:gabarito_plus/features/geracao_prova/service/prova_repository.dart';
+import 'package:gabarito_plus/features/provas/service/prova_repository.dart';
 
 import 'helpers/correcao_repository_memoria.dart';
 import 'helpers/fixtures_correcao.dart';
