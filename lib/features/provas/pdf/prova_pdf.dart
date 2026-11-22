@@ -17,61 +17,48 @@ int quantidadeAlternativasDaVersao(VersaoProva versao) => versao.questoes.fold<i
       (maior, q) => q.alternativas.length > maior ? q.alternativas.length : maior,
     );
 
-/// Posição de cada célula da folha de respostas, em pontos do PDF, a partir
-/// da geometria do leitor ([LayoutFolhaOmr]). As coordenadas são relativas
-/// ao centro do marcador superior esquerdo.
+/// Folha de respostas em pontos do PDF, a partir da geometria do leitor
+/// ([LayoutFolhaOmr]). As coordenadas são relativas ao centro do marcador
+/// superior esquerdo.
 ///
 /// O leitor retifica a foto para 800x1200 usando os centros dos marcadores,
-/// então o tamanho impresso pode variar (só a proporção 2:3 importa).
-/// Poucas questões → folha menor, para as células não ficarem enormes.
+/// então basta escalar: a folha impressa tem sempre o mesmo tamanho, e com
+/// poucas questões as caixas ficam juntas no topo (a grade tem no mínimo
+/// [LayoutFolhaOmr.linhasMinimas] linhas).
 class GeometriaFolha {
-  GeometriaFolha({required this.totalQuestoes, required this.quantidadeAlternativas})
-      : altura = _calcularAltura(totalQuestoes) {
-    largura = altura * LayoutFolhaOmr.largura / LayoutFolhaOmr.altura;
-  }
+  GeometriaFolha({required this.totalQuestoes, required this.quantidadeAlternativas});
 
   final int totalQuestoes;
   final int quantidadeAlternativas;
 
-  /// Distância vertical entre os centros dos marcadores.
-  final double altura;
-
-  /// Distância horizontal entre os centros dos marcadores (altura x 2/3).
-  late final double largura;
-
   static const tamanhoMarcador = 22.0;
-  static const _alturaLinhaIdeal = 24.0;
 
-  // Mínimo: o QR Code fica centralizado acima da folha e não pode ficar mais
-  // "no canto" que os marcadores (o leitor escolhe os cantos pelos extremos).
-  static const _alturaMinima = 480.0;
-  static const _alturaMaxima = 560.0;
+  /// Distância vertical entre os centros dos marcadores.
+  static const altura = 560.0;
 
-  static double _calcularAltura(int totalQuestoes) {
-    const fracaoUtil = (LayoutFolhaOmr.altura -
-            LayoutFolhaOmr.margemSuperior -
-            LayoutFolhaOmr.margemInferior) /
-        LayoutFolhaOmr.altura;
-    final desejada = totalQuestoes * _alturaLinhaIdeal / fracaoUtil;
-    return desejada.clamp(_alturaMinima, _alturaMaxima);
+  /// Distância horizontal entre os centros dos marcadores (proporção 2:3).
+  static const largura = altura * LayoutFolhaOmr.largura / LayoutFolhaOmr.altura;
+
+  static const _escala = altura / LayoutFolhaOmr.altura;
+
+  /// Caixa de marcação em pontos do PDF.
+  ({double x, double y, double largura, double altura}) caixa(int questao, int alternativa) {
+    final c = LayoutFolhaOmr.caixa(
+      questao: questao,
+      alternativa: alternativa,
+      totalQuestoes: totalQuestoes,
+      quantidadeAlternativas: quantidadeAlternativas,
+    );
+    return (
+      x: c.x * _escala,
+      y: c.y * _escala,
+      largura: c.largura * _escala,
+      altura: c.altura * _escala,
+    );
   }
 
-  double get _escalaX => largura / LayoutFolhaOmr.largura;
-  double get _escalaY => altura / LayoutFolhaOmr.altura;
-
-  double get alturaLinha =>
-      (LayoutFolhaOmr.altura - LayoutFolhaOmr.margemSuperior - LayoutFolhaOmr.margemInferior) *
-      _escalaY /
-      totalQuestoes;
-
-  double get larguraColuna =>
-      (LayoutFolhaOmr.largura - LayoutFolhaOmr.margemEsquerda - LayoutFolhaOmr.margemDireita) *
-      _escalaX /
-      quantidadeAlternativas;
-
-  /// Canto superior esquerdo da célula (questão [questao], alternativa [alt]).
-  double xCelula(int alt) => LayoutFolhaOmr.margemEsquerda * _escalaX + alt * larguraColuna;
-  double yCelula(int questao) => LayoutFolhaOmr.margemSuperior * _escalaY + questao * alturaLinha;
+  /// Início da grade (x da primeira coluna), para alinhar os números.
+  double get inicioGrade => LayoutFolhaOmr.margemEsquerda * _escala;
 }
 
 /// Monta os PDFs das provas: questões, folha de respostas e gabaritos.
@@ -104,7 +91,8 @@ class ProvaPdf {
     return doc.save();
   }
 
-  /// Prova, folha de respostas e gabarito de um único aluno.
+  /// Prova e folha de respostas de um único aluno. Sem a página de
+  /// gabarito: este PDF pode ir para a mão do aluno.
   static Future<Uint8List> provaDoAluno(Prova prova, VersaoProva versao) async {
     final tema = await _tema();
     final doc = pw.Document(
@@ -112,7 +100,6 @@ class ProvaPdf {
       author: 'Gabarito Plus',
     );
     _adicionarProva(doc, tema, prova, versao);
-    _adicionarMatrizGabaritos(doc, tema, prova, [versao]);
     return doc.save();
   }
 
@@ -276,12 +263,6 @@ class ProvaPdf {
     const m = GeometriaFolha.tamanhoMarcador;
     const meio = m / 2;
 
-    final larguraCelula = g.larguraColuna * (1 - 2 * LayoutFolhaOmr.recuoCelula);
-    final alturaCelula = g.alturaLinha * (1 - 2 * LayoutFolhaOmr.recuoCelula);
-    final raio = (alturaCelula < larguraCelula ? alturaCelula : larguraCelula) / 2;
-    final fonteLetra = (alturaCelula * 0.55).clamp(5.0, 9.0);
-    final fonteNumero = (g.alturaLinha * 0.55).clamp(6.0, 10.0);
-
     pw.Widget marcador(double left, double top) => pw.Positioned(
           left: left,
           top: top,
@@ -290,18 +271,21 @@ class ProvaPdf {
 
     final celulas = <pw.Widget>[];
     for (var q = 0; q < totalQuestoes; q++) {
+      final primeira = g.caixa(q, 0);
+      final fonte = (primeira.altura * 0.6).clamp(6.0, 10.0);
+
       celulas.add(
         pw.Positioned(
-          left: meio + g.xCelula(0) - 34,
-          top: meio + g.yCelula(q),
+          left: meio + g.inicioGrade - 30,
+          top: meio + primeira.y,
           child: pw.SizedBox(
-            width: 28,
-            height: g.alturaLinha,
+            width: 24,
+            height: primeira.altura,
             child: pw.Align(
               alignment: pw.Alignment.centerRight,
               child: pw.Text(
                 '${q + 1}',
-                style: pw.TextStyle(fontSize: fonteNumero, fontWeight: pw.FontWeight.bold),
+                style: pw.TextStyle(fontSize: fonte, fontWeight: pw.FontWeight.bold),
               ),
             ),
           ),
@@ -311,21 +295,23 @@ class ProvaPdf {
       // Questões com menos alternativas que a maior não ganham as caixas extras.
       final doQuestao = versao.questoes[q].alternativas.length;
       for (var a = 0; a < doQuestao; a++) {
+        final c = g.caixa(q, a);
+        final raio = c.altura / 2 < 5 ? c.altura / 2 : 5.0;
         celulas.add(
           pw.Positioned(
-            left: meio + g.xCelula(a) + g.larguraColuna * LayoutFolhaOmr.recuoCelula,
-            top: meio + g.yCelula(q) + g.alturaLinha * LayoutFolhaOmr.recuoCelula,
+            left: meio + c.x,
+            top: meio + c.y,
             child: pw.Container(
-              width: larguraCelula,
-              height: alturaCelula,
+              width: c.largura,
+              height: c.altura,
               alignment: pw.Alignment.center,
               decoration: pw.BoxDecoration(
                 border: pw.Border.all(width: 0.6, color: PdfColors.grey600),
-                borderRadius: pw.BorderRadius.all(pw.Radius.circular(raio > 5 ? 5 : raio)),
+                borderRadius: pw.BorderRadius.all(pw.Radius.circular(raio)),
               ),
               child: pw.Text(
                 _letra(a),
-                style: pw.TextStyle(fontSize: fonteLetra, color: PdfColors.grey500),
+                style: pw.TextStyle(fontSize: fonte * 0.8, color: PdfColors.grey400),
               ),
             ),
           ),
@@ -362,14 +348,14 @@ class ProvaPdf {
           ),
           pw.SizedBox(height: 10),
           pw.SizedBox(
-            width: g.largura + m,
-            height: g.altura + m,
+            width: GeometriaFolha.largura + m,
+            height: GeometriaFolha.altura + m,
             child: pw.Stack(
               children: [
                 marcador(0, 0),
-                marcador(g.largura, 0),
-                marcador(g.largura, g.altura),
-                marcador(0, g.altura),
+                marcador(GeometriaFolha.largura, 0),
+                marcador(GeometriaFolha.largura, GeometriaFolha.altura),
+                marcador(0, GeometriaFolha.altura),
                 ...celulas,
               ],
             ),

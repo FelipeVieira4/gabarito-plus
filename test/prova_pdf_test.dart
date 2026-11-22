@@ -12,37 +12,42 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('GeometriaFolha bate com o leitor da câmera', () {
-    for (final total in [5, 10, 25, 50]) {
+    const escala = GeometriaFolha.altura / LayoutFolhaOmr.altura;
+
+    test('proporção 2:3 entre os marcadores, como na retificação', () {
+      expect(GeometriaFolha.largura / GeometriaFolha.altura, closeTo(800 / 1200, 1e-9));
+    });
+
+    for (final total in [2, 10, 25, 50]) {
       test('$total questões', () {
-        final g = GeometriaFolha(totalQuestoes: total, quantidadeAlternativas: 5);
+        final g = GeometriaFolha(totalQuestoes: total, quantidadeAlternativas: 4);
 
-        // Proporção 2:3 entre os centros dos marcadores, como na retificação.
-        expect(g.largura / g.altura, closeTo(800 / 1200, 1e-9));
+        for (var q = 0; q < total; q++) {
+          for (var a = 0; a < 4; a++) {
+            final pdf = g.caixa(q, a);
+            final leitor = LayoutFolhaOmr.caixa(
+              questao: q,
+              alternativa: a,
+              totalQuestoes: total,
+              quantidadeAlternativas: 4,
+            );
+            // Mesma caixa, só que em pontos.
+            expect(pdf.x, closeTo(leitor.x * escala, 1e-9));
+            expect(pdf.y, closeTo(leitor.y * escala, 1e-9));
+            expect(pdf.largura, closeTo(leitor.largura * escala, 1e-9));
 
-        // Primeira célula e fim da grade nas mesmas frações do leitor.
-        expect(g.xCelula(0) / g.largura,
-            closeTo(LayoutFolhaOmr.margemEsquerda / LayoutFolhaOmr.largura, 1e-9));
-        expect(g.yCelula(0) / g.altura,
-            closeTo(LayoutFolhaOmr.margemSuperior / LayoutFolhaOmr.altura, 1e-9));
-        expect(
-          g.xCelula(5) / g.largura,
-          closeTo(
-            (LayoutFolhaOmr.largura - LayoutFolhaOmr.margemDireita) / LayoutFolhaOmr.largura,
-            1e-9,
-          ),
-        );
-        expect(
-          g.yCelula(total) / g.altura,
-          closeTo(
-            (LayoutFolhaOmr.altura - LayoutFolhaOmr.margemInferior) / LayoutFolhaOmr.altura,
-            1e-9,
-          ),
-        );
+            // Dentro da área útil da folha.
+            expect(leitor.x + leitor.largura,
+                lessThanOrEqualTo(LayoutFolhaOmr.largura - LayoutFolhaOmr.margemDireita));
+            expect(leitor.y + leitor.altura,
+                lessThanOrEqualTo(LayoutFolhaOmr.altura - LayoutFolhaOmr.margemInferior));
+          }
+        }
 
-        // Folha cabe numa página A4 (842 pt de altura) com o cabeçalho.
-        expect(g.altura, lessThanOrEqualTo(560));
-        // QR centralizado acima não pode virar "canto" (ver GeometriaFolha).
-        expect(g.largura / 2 - 32, greaterThan(85));
+        // Caixas com tamanho limitado: com poucas questões não esticam.
+        final c = g.caixa(0, 0);
+        expect(c.altura, lessThanOrEqualTo(LayoutFolhaOmr.alturaMaximaCaixa * escala));
+        expect(c.largura, lessThanOrEqualTo(LayoutFolhaOmr.larguraMaximaCaixa * escala));
       });
     }
   });
