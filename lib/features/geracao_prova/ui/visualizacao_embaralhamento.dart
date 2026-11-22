@@ -37,7 +37,7 @@ class _VisualizacaoEmbaralhamentoState extends State<VisualizacaoEmbaralhamento>
     try {
       await ProvaRepository.instancia.salvar(widget.prova, _versoes);
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) return false;
       setState(() => _salvando = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -71,9 +71,7 @@ class _VisualizacaoEmbaralhamentoState extends State<VisualizacaoEmbaralhamento>
         title: const Text('Salvar antes de imprimir'),
         content: const Text(
           'As provas ainda não foram salvas. Sem salvar, a correção não '
-          'encontra o gabarito destas provas.
-
-Deseja salvar agora?',
+          'encontra o gabarito destas provas. Deseja salvar agora?',
         ),
         actions: [
           TextButton(
