@@ -5,7 +5,7 @@ import 'package:gabarito_plus/features/aluno/ui/cadastro_aluno.dart';
 import 'package:gabarito_plus/features/aluno/ui/consulta_aluno.dart';
 import 'package:gabarito_plus/features/turma/ui/cadastro_turma.dart';
 import 'package:gabarito_plus/features/turma/ui/consulta_turma.dart';
-import '../../../professor/ui/profile_view.dart';
+import '../../professor/ui/profile_view.dart';
 
 class DashboardAluno extends StatelessWidget {
   const DashboardAluno({super.key});

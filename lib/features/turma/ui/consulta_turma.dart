@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gabarito_plus/widgets/menu_opcoes.dart';
 import 'package:gabarito_plus/features/turma/data/turma.dart';
 import 'package:gabarito_plus/features/turma/service/turma_service.dart';
 import 'package:gabarito_plus/features/turma/ui/cadastro_turma.dart';
@@ -38,6 +39,32 @@ class _ConsultaTurmaState extends State<ConsultaTurma> {
       ),
     );
     if (mounted) _recarregar();
+  }
+
+  Future<void> _excluirTurma(Turma turma) async {
+    final ok = await confirmarExclusao(
+      context,
+      titulo: 'Excluir turma',
+      mensagem: 'Deseja excluir "${turma.nomeTurma}"?',
+    );
+    if (!ok) return;
+
+    try {
+      await _turmaService.excluir(turma.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Turma excluída!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      _recarregar();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao excluir turma: $e')),
+      );
+    }
   }
 
   @override
@@ -108,10 +135,16 @@ class _ConsultaTurmaState extends State<ConsultaTurma> {
                             '${turma.listaAlunos.length} aluno(s)'
                             '${turma.ativa ? '' : ' • Inativa'}',
                           ),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.edit),
-                            tooltip: 'Editar Turma',
-                            onPressed: () => _abrirCadastro(turma: turma),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              MenuOpcoes(
+                                tooltip: 'Opções da turma',
+                                onEditar: () => _abrirCadastro(turma: turma),
+                                onExcluir: () => _excluirTurma(turma),
+                              ),
+                              const Icon(Icons.expand_more),
+                            ],
                           ),
                           children: turma.listaAlunos.isEmpty
                               ? const [
