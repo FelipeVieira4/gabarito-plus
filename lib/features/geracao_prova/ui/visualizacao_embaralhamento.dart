@@ -98,17 +98,77 @@ class _VisualizacaoEmbaralhamentoState extends State<VisualizacaoEmbaralhamento>
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: ResumoProvaCard(
-              titulo: prova.titulo,
-              nomeTurma: prova.turma.nomeTurma,
-              nomeAssunto: prova.assunto.nome,
-              totalQuestoes: prova.questoes.length,
-              totalVersoes: _versoes.length,
-              embaralharQuestoes: prova.embaralharQuestoes,
-              embaralharAlternativas: prova.embaralharAlternativas,
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Card(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(prova.titulo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                    const SizedBox(height: 4),
+                    Text('Assunto: ${prova.assunto.nome}'),
+                    const SizedBox(height: 2),
+                    Text(
+                      prova.sorteiaQuestoes
+                          ? '${prova.turma.nomeTurma} · ${prova.quantidadeQuestoesPorVersao} de ${prova.questoes.length} questões por prova · ${_versoes.length} variações geradas'
+                          : '${prova.turma.nomeTurma} · ${prova.questoes.length} questões · ${_versoes.length} variações geradas',
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        if (prova.sorteiaQuestoes)
+                          _buildChip(Icons.check_circle, 'Questões sorteadas por aluno', true),
+                        _buildChip(
+                          prova.embaralharQuestoes ? Icons.check_circle : Icons.cancel,
+                          'Ordem das questões',
+                          prova.embaralharQuestoes,
+                        ),
+                        _buildChip(
+                          prova.embaralharAlternativas ? Icons.check_circle : Icons.cancel,
+                          'Ordem das alternativas',
+                          prova.embaralharAlternativas,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
+          if (!_salva)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: Colors.orange.shade800),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Provas ainda não salvas: a correção só encontra provas salvas.',
+                      style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                prova.sorteiaQuestoes
+                    ? 'Cada aluno recebe questões sorteadas do banco selecionado'
+                    : 'Cada aluno recebe uma prova com a mesma dificuldade, mas em uma ordem diferente',
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           Expanded(
             child: ListView.separated(
               padding: const EdgeInsets.all(16.0),

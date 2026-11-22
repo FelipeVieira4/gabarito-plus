@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:gabarito_plus/features/disciplina/data/assunto.dart';
 import 'package:gabarito_plus/features/disciplina/data/disciplina.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/prova.dart';
@@ -24,6 +25,7 @@ class ConfiguracaoProva extends StatefulWidget {
 class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
   final _formKey = GlobalKey<FormState>();
   final _tituloController = TextEditingController();
+  final _questoesPorProvaController = TextEditingController();
   final _questoesService = QuestoesService();
   final _turmaService = TurmaService();
 
@@ -43,7 +45,10 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
   bool _embaralharAlternativas = true;
 
   bool get _edicao => widget.provaEditada != null;
-  bool _edicaoPreenchida = false;
+  bool _sortearQuestoes = false;
+
+  int? get _questoesPorProva =>
+      int.tryParse(_questoesPorProvaController.text.trim());
 
   @override
   void initState() {
@@ -142,6 +147,7 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
   @override
   void dispose() {
     _tituloController.dispose();
+    _questoesPorProvaController.dispose();
     super.dispose();
   }
 
@@ -178,6 +184,21 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
       return;
     }
 
+    if (_sortearQuestoes) {
+      final porProva = _questoesPorProva;
+      if (porProva == null || porProva < 1) {
+        _mostrarAviso('Informe quantas questões cada prova deve ter');
+        return;
+      }
+      if (porProva > _questoesSelecionadas.length) {
+        _mostrarAviso(
+          'Cada prova pede $porProva questões, mas só '
+          '${_questoesSelecionadas.length} foram selecionadas',
+        );
+        return;
+      }
+    }
+
     if (_turmaSelecionada!.listaAlunos.isEmpty) {
       _mostrarAviso('A turma selecionada não possui alunos cadastrados');
       return;
@@ -190,6 +211,7 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
       turma: _turmaSelecionada!,
       assunto: _assuntoSelecionado!,
       questoes: _questoesSelecionadas.toList(),
+      questoesPorProva: _sortearQuestoes ? _questoesPorProva : null,
       embaralharQuestoes: _embaralharQuestoes,
       embaralharAlternativas: _embaralharAlternativas,
     );
@@ -353,6 +375,10 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
               _buildSecaoQuestoes(),
               const SizedBox(height: 24),
 
+              // Sorteio de questões diferentes por aluno
+              _buildSecaoSorteio(),
+              const SizedBox(height: 24),
+
               // Opções de Embaralhamento
               _buildSecaoEmbaralhamento(),
               const SizedBox(height: 24),
@@ -506,6 +532,82 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
         Text(
           '${_questoesSelecionadas.length} de $totalQuestoes questões selecionadas',
           style: TextStyle(color: Colors.grey[600], fontSize: 12),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSecaoSorteio() {
+    final banco = _questoesSelecionadas.length;
+    final porProva = _questoesPorProva;
+
+    String? dica;
+    if (_sortearQuestoes && porProva != null && porProva > 0 && porProva <= banco) {
+      dica = porProva == banco
+          ? 'Todas as provas terão as mesmas $banco questões. '
+              'Selecione mais questões para variar.'
+          : 'Cada aluno recebe $porProva das $banco questões selecionadas.';
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Questões por aluno',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        Card(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(color: Colors.grey.shade300),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SwitchListTile(
+                key: const Key('switch-sortear-questoes'),
+                value: _sortearQuestoes,
+                title: const Text('Sortear questões diferentes para cada aluno'),
+                subtitle: const Text(
+                  'As questões selecionadas viram um banco e cada prova '
+                  'sorteia parte delas',
+                ),
+                onChanged: (value) => setState(() => _sortearQuestoes = value),
+              ),
+              if (_sortearQuestoes) ...[
+                const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: TextFormField(
+                    key: const Key('campo-questoes-por-prova'),
+                    controller: _questoesPorProvaController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: InputDecoration(
+                      labelText: 'Questões por prova',
+                      helperText: dica ?? '$banco questões selecionadas no banco',
+                      helperMaxLines: 2,
+                      border: const OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.format_list_numbered),
+                    ),
+                    onChanged: (_) => setState(() {}),
+                    validator: (value) {
+                      if (!_sortearQuestoes) return null;
+                      final n = int.tryParse(value?.trim() ?? '');
+                      if (n == null || n < 1) {
+                        return 'Informe quantas questões cada prova terá';
+                      }
+                      if (n > banco) {
+                        return 'Máximo de $banco (questões selecionadas)';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ],
     );

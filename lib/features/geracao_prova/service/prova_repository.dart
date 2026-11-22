@@ -5,6 +5,7 @@ import 'package:gabarito_plus/features/correcao_prova/services/correcao_reposito
 import 'package:gabarito_plus/features/geracao_prova/data/gabarito_lido.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/prova.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/versao_prova.dart';
+import 'package:gabarito_plus/core/professor_db.dart';
 
 /// Sem 0/O, 1/I/L: o código é digitado à mão na correção.
 const alfabetoCodigoProva = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';

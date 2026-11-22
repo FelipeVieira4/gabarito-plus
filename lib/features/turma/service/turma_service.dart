@@ -1,10 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:gabarito_plus/features/aluno/data/aluno.dart';
 import 'package:gabarito_plus/features/turma/data/turma.dart';
+import 'package:gabarito_plus/core/professor_db.dart';
 
 class TurmaService {
-  final _turmas = FirebaseFirestore.instance.collection('turmas');
-  final _alunos = FirebaseFirestore.instance.collection('alunos');
+  CollectionReference<Map<String, dynamic>> get _turmas => ProfessorDb.colecao('turmas');
+  CollectionReference<Map<String, dynamic>> get _alunos => ProfessorDb.colecao('alunos');
 
   Aluno _alunoFromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
     final d = doc.data()!;

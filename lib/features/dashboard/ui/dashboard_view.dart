@@ -90,6 +90,19 @@ class DashboardView extends StatelessWidget {
                         ),
                         _buildMenuCard(
                           context,
+                          'Disciplinas & Assuntos',
+                          Icons.bookmark,
+                          Colors.purple,
+                              () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                              const ConsultaDisciplinasView(),
+                            ),
+                          ),
+                        ),
+                        _buildMenuCard(
+                          context,
                           'Banco de Questões',
                           Icons.quiz,
                           Colors.orange,
@@ -97,19 +110,6 @@ class DashboardView extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (context) => const ListaQuestoesView(),
-                            ),
-                          ),
-                        ),
-                        _buildMenuCard(
-                          context,
-                          'Disciplinas & Assuntos',
-                          Icons.bookmark,
-                          Colors.purple,
-                          () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const ConsultaDisciplinasView(),
                             ),
                           ),
                         ),
