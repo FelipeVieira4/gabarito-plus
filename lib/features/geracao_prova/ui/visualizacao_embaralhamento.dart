@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/embaralhador.dart';
 import 'package:gabarito_plus/features/provas/data/prova.dart';
 import 'package:gabarito_plus/features/provas/data/versao_prova.dart';
-import 'package:gabarito_plus/features/geracao_prova/service/prova_repository.dart';
 import 'package:gabarito_plus/features/geracao_prova/ui/gabarito_qrcode.dart';
+import 'package:gabarito_plus/features/provas/service/prova_repository.dart';
 
 class VisualizacaoEmbaralhamento extends StatefulWidget {
   const VisualizacaoEmbaralhamento({super.key, required this.prova});

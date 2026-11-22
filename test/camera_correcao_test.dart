@@ -5,7 +5,7 @@ import 'package:gabarito_plus/features/correcao_prova/services/correcao_service.
 import 'package:gabarito_plus/features/correcao_prova/views/correcao/camera_correcao.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/embaralhador.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/gabarito_lido.dart';
-import 'package:gabarito_plus/features/geracao_prova/service/prova_repository.dart';
+import 'package:gabarito_plus/features/provas/service/prova_repository.dart';
 
 import 'helpers/correcao_repository_memoria.dart';
 import 'helpers/fixtures_correcao.dart';

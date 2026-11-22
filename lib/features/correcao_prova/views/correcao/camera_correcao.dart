@@ -8,7 +8,7 @@ import 'package:gabarito_plus/features/correcao_prova/views/correcao/leitor_folh
 import 'package:gabarito_plus/features/correcao_prova/views/correcao/leitor_qr_code.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/correcao.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/gabarito_lido.dart';
-import 'package:gabarito_plus/features/geracao_prova/service/prova_repository.dart';
+import 'package:gabarito_plus/features/provas/service/prova_repository.dart';
 
 enum _Etapa { lendoQr, lendoFolha, conferindo, resultado }
 

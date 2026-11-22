@@ -20,9 +20,9 @@ import 'package:gabarito_plus/features/correcao_prova/services/correcao_reposito
 import 'package:gabarito_plus/features/disciplina/data/assunto.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/correcao.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/embaralhador.dart';
-import 'package:gabarito_plus/features/geracao_prova/data/prova.dart';
-import 'package:gabarito_plus/features/geracao_prova/data/versao_prova.dart';
-import 'package:gabarito_plus/features/geracao_prova/service/prova_repository.dart';
+import 'package:gabarito_plus/features/provas/data/prova.dart';
+import 'package:gabarito_plus/features/provas/data/versao_prova.dart';
+import 'package:gabarito_plus/features/provas/service/prova_repository.dart';
 import 'package:gabarito_plus/features/questoes/data/alternativa.dart';
 import 'package:gabarito_plus/features/questoes/data/questao.dart';
 import 'package:gabarito_plus/features/turma/data/turma.dart';

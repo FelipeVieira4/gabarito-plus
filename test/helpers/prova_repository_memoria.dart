@@ -1,7 +1,7 @@
 import 'package:gabarito_plus/features/geracao_prova/data/gabarito_lido.dart';
-import 'package:gabarito_plus/features/geracao_prova/data/prova.dart';
-import 'package:gabarito_plus/features/geracao_prova/data/versao_prova.dart';
-import 'package:gabarito_plus/features/geracao_prova/service/prova_repository.dart';
+import 'package:gabarito_plus/features/provas/data/prova.dart';
+import 'package:gabarito_plus/features/provas/data/versao_prova.dart';
+import 'package:gabarito_plus/features/provas/service/prova_repository.dart';
 
 /// Repositório de provas em memória para os testes de widget, que não
 /// inicializam o Firebase. Monta o gabarito do mesmo jeito que o real.

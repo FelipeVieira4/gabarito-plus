@@ -3,7 +3,7 @@ import 'package:gabarito_plus/features/correcao_prova/services/correcao_service.
 import 'package:gabarito_plus/features/disciplina/data/assunto.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/correcao.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/gabarito_lido.dart';
-import 'package:gabarito_plus/features/geracao_prova/data/prova.dart';
+import 'package:gabarito_plus/features/provas/data/prova.dart';
 import 'package:gabarito_plus/features/questoes/data/alternativa.dart';
 import 'package:gabarito_plus/features/questoes/data/questao.dart';
 import 'package:gabarito_plus/features/turma/data/turma.dart';
