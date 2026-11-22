@@ -130,21 +130,16 @@ void main() {
     expect(selecionada!.nomeAluno, 'Ana Maria');
   });
 
-  testWidgets('DashboardView possui atalho para Provas Corrigidas',
+  testWidgets('Provas Corrigidas fica dentro de Provas e Desempenho',
       (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: DashboardView(nomeUsuario: 'Prof. Teste')),
     );
     await tester.pumpAndSettle();
 
-    final cardConsulta = find.text('Provas Corrigidas');
-    expect(cardConsulta, findsOneWidget);
-
-    await tester.ensureVisible(cardConsulta);
-    await tester.tap(cardConsulta);
-    await tester.pumpAndSettle();
-
-    expect(find.byType(ConsultaProvasCorrigidasView), findsOneWidget);
-    expect(find.text('Ana Maria'), findsOneWidget);
+    // A consulta de correções saiu do menu principal e é aberta pelo
+    // dashboard de Provas e Desempenho.
+    expect(find.text('Provas e Desempenho'), findsOneWidget);
+    expect(find.text('Provas Corrigidas'), findsNothing);
   });
 }
