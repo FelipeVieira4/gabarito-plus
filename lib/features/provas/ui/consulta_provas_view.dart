@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:gabarito_plus/features/correcao_prova/views/correcao/detalhes_prova_corrigida_view.dart';
+import 'package:gabarito_plus/features/correcao_prova/ui/detalhes_prova_corrigida_view.dart';
 import 'package:gabarito_plus/features/disciplina/data/assunto.dart';
 import 'package:gabarito_plus/features/provas/data/desempenho.dart';
 import 'package:gabarito_plus/features/provas/data/prova.dart';

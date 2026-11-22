@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:gabarito_plus/features/correcao_prova/services/correcao_repository.dart';
 import 'package:gabarito_plus/features/correcao_prova/services/correcao_service.dart';
-import 'package:gabarito_plus/features/correcao_prova/views/correcao/camera_correcao.dart';
+import 'package:gabarito_plus/features/correcao_prova/ui/camera_correcao.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/correcao.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/estatistica_prova.dart';
-import 'package:gabarito_plus/features/correcao_prova/views/correcao/detalhes_prova_corrigida_view.dart';
+import 'package:gabarito_plus/features/correcao_prova/ui/detalhes_prova_corrigida_view.dart';
 
 enum OrdenacaoCorrecao {
   maiorNota('Maior nota'),
