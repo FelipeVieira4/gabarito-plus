@@ -1,4 +1,4 @@
-import 'package:gabarito_plus/features/geracao_prova/data/versao_prova.dart';
+import 'package:gabarito_plus/features/provas/data/versao_prova.dart';
 
 
 String letraAlternativa(int? indice) {

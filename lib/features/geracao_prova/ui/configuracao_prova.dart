@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gabarito_plus/features/disciplina/data/assunto.dart';
 import 'package:gabarito_plus/features/disciplina/data/disciplina.dart';
-import 'package:gabarito_plus/features/geracao_prova/data/prova.dart';
+import 'package:gabarito_plus/features/provas/data/prova.dart';
 import 'package:gabarito_plus/features/geracao_prova/service/prova_repository.dart';
 import 'package:gabarito_plus/features/geracao_prova/ui/visualizacao_embaralhamento.dart';
 import 'package:gabarito_plus/features/questoes/data/questao.dart';

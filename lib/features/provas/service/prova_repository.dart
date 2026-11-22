@@ -2,8 +2,8 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/gabarito_lido.dart';
-import 'package:gabarito_plus/features/geracao_prova/data/prova.dart';
-import 'package:gabarito_plus/features/geracao_prova/data/versao_prova.dart';
+import 'package:gabarito_plus/features/provas/data/prova.dart';
+import 'package:gabarito_plus/features/provas/data/versao_prova.dart';
 import 'package:gabarito_plus/core/professor_db.dart';
 
 /// Sem 0/O, 1/I/L: o código é digitado à mão na correção.

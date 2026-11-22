@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:gabarito_plus/features/geracao_prova/data/prova.dart';
-import 'package:gabarito_plus/features/geracao_prova/data/versao_prova.dart';
+import 'package:gabarito_plus/features/provas/data/prova.dart';
+import 'package:gabarito_plus/features/provas/data/versao_prova.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 class GabaritoQrCode extends StatelessWidget {

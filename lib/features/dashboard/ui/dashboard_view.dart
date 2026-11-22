@@ -5,6 +5,7 @@ import 'package:gabarito_plus/features/dashboard/ui/consulta_disciplinas.dart';
 import 'package:gabarito_plus/features/dashboard/ui/dashboard_alunos.dart';
 import 'package:gabarito_plus/features/geracao_prova/ui/configuracao_prova.dart';
 import 'package:gabarito_plus/features/professor/ui/profile_view.dart';
+import 'package:gabarito_plus/features/provas/ui/dashboard_provas_view.dart';
 import 'package:gabarito_plus/features/questoes/ui/consulta_questoes.dart';
 import 'package:gabarito_plus/features/auth/service/auth_service.dart';
 
@@ -111,6 +112,18 @@ class DashboardView extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (context) => const ListaQuestoesView(),
+                            ),
+                          ),
+                        ),
+                        _buildMenuCard(
+                          context,
+                          'Provas & Desempenho',
+                          Icons.insights,
+                          Colors.indigo,
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const DashboardProvasView(),
                             ),
                           ),
                         ),
