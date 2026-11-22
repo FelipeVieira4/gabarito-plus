@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:gabarito_plus/features/correcao_prova/views/correcao/consulta_provas_corrigidas.dart';
-import 'package:gabarito_plus/features/geracao_prova/ui/configuracao_prova.dart';
 import 'package:gabarito_plus/features/provas/data/desempenho.dart';
 import 'package:gabarito_plus/features/provas/service/desempenho_repository.dart';
 import 'package:gabarito_plus/features/provas/ui/consulta_provas_view.dart';
+import 'package:gabarito_plus/features/provas/ui/provas_corrigidas_view.dart';
 import 'package:gabarito_plus/features/provas/ui/desempenho_turma_view.dart';
 import 'package:gabarito_plus/features/provas/ui/desempenho_turmas_view.dart';
 import 'package:gabarito_plus/features/provas/ui/widgets/filtros_provas.dart';
@@ -67,7 +66,7 @@ class _DashboardProvasViewState extends State<DashboardProvasView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Provas'),
+        title: const Text('Provas e Desempenho'),
         actions: [
           IconButton(
             tooltip: 'Atualizar',
@@ -140,14 +139,14 @@ class _DashboardProvasViewState extends State<DashboardProvasView> {
               const SizedBox(height: 12),
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final colunas = constraints.maxWidth >= 700 ? 4 : 2;
+                  final largo = constraints.maxWidth >= 700;
                   return GridView.count(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: colunas,
-                    crossAxisSpacing: 16,
+                    crossAxisCount: 3,
+                    crossAxisSpacing: largo ? 16 : 8,
                     mainAxisSpacing: 16,
-                    childAspectRatio: colunas == 4 ? 1.3 : 1.2,
+                    childAspectRatio: largo ? 1.4 : 0.85,
                     children: [
                       _cardMenu(
                         'Consulta de Provas',
@@ -162,17 +161,11 @@ class _DashboardProvasViewState extends State<DashboardProvasView> {
                         () => _abrir(DesempenhoTurmasView(analise: _analise, filtroInicial: filtro)),
                       ),
                       _cardMenu(
-                        'Gerar Prova',
-                        Icons.note_add_outlined,
-                        Colors.green,
-                        () => _abrir(const ConfiguracaoProva(), recarregarAoVoltar: true),
-                      ),
-                      _cardMenu(
                         'Provas Corrigidas',
                         Icons.fact_check,
                         Colors.teal,
                         () => _abrir(
-                          const ConsultaProvasCorrigidasView(),
+                          ProvasCorrigidasView(analise: _analise, filtroInicial: filtro),
                           recarregarAoVoltar: true,
                         ),
                       ),

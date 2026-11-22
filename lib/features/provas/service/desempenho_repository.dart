@@ -36,14 +36,38 @@ class DesempenhoRepositoryFirestore implements DesempenhoRepository {
         a.id: (a.data()['disciplinaId'] ?? '') as String,
     };
 
+    // Provas antigas não gravaram quantidadeVersoes: conta as versões.
+    final semQuantidade = provasSnap.docs
+        .where((d) => d.data()['quantidadeVersoes'] == null)
+        .toList();
+    final contagens = await Future.wait(
+      semQuantidade.map((d) async {
+        try {
+          final agregado = await d.reference.collection('versoes').count().get();
+          return agregado.count;
+        } catch (_) {
+          return null;
+        }
+      }),
+    );
+    final versoesContadas = {
+      for (var i = 0; i < semQuantidade.length; i++)
+        semQuantidade[i].id: contagens[i],
+    };
+
     final provas = provasSnap.docs.map((doc) {
       final dados = doc.data();
-      final disciplinaId = disciplinaDoAssunto[dados['assuntoId']] ?? '';
+      // Provas novas gravam a disciplina (necessário com "Todos os assuntos").
+      final gravada = (dados['disciplinaId'] ?? '') as String;
+      final disciplinaId =
+          gravada.isNotEmpty ? gravada : (disciplinaDoAssunto[dados['assuntoId']] ?? '');
       return ProvaResumo.fromMap(
         doc.id,
         dados,
         disciplinaId: disciplinaId,
-        nomeDisciplina: nomeDisciplina[disciplinaId] ?? '',
+        nomeDisciplina: nomeDisciplina[disciplinaId] ??
+            (dados['nomeDisciplina'] ?? '') as String,
+        quantidadeVersoes: versoesContadas[doc.id],
       );
     }).toList();
 

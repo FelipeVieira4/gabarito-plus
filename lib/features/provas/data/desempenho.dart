@@ -57,6 +57,9 @@ class ProvaResumo {
   final int quantidadeQuestoes;
   final DateTime? criadaEm;
 
+  /// Quantas versões (alunos) a prova tem. Null se não foi possível saber.
+  final int? quantidadeVersoes;
+
   ProvaResumo({
     required this.id,
     required this.titulo,
@@ -68,6 +71,7 @@ class ProvaResumo {
     required this.nomeDisciplina,
     required this.quantidadeQuestoes,
     required this.criadaEm,
+    this.quantidadeVersoes,
   });
 
   /// [dados] é o formato de `Prova.toMap()`.
@@ -76,6 +80,7 @@ class ProvaResumo {
     Map<String, dynamic> dados, {
     required String disciplinaId,
     required String nomeDisciplina,
+    int? quantidadeVersoes,
   }) {
     final criadaEm = dados['criadaEm'];
     return ProvaResumo(
@@ -91,6 +96,8 @@ class ProvaResumo {
           (dados['questoesIds'] as List?)?.length ??
           0,
       criadaEm: criadaEm is Timestamp ? criadaEm.toDate() : null,
+      quantidadeVersoes:
+          (dados['quantidadeVersoes'] as num?)?.toInt() ?? quantidadeVersoes,
     );
   }
 

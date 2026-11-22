@@ -37,6 +37,20 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
 
   final Set<Questao> _questoesSelecionadas = {};
 
+  /// Opção "Todos os assuntos" do dropdown: lista as questões de todos os
+  /// assuntos da disciplina.
+  final _todosAssuntos = Assunto(id: '__todos__', nome: 'Todos os assuntos', questoes: []);
+
+  bool get _todosSelecionado => _assuntoSelecionado == _todosAssuntos;
+
+  /// Assuntos cujas questões aparecem na lista.
+  List<Assunto> get _assuntosExibidos {
+    if (_disciplinaSelecionada == null || _assuntoSelecionado == null) return [];
+    return _todosSelecionado
+        ? _disciplinaSelecionada!.assuntos
+        : [_assuntoSelecionado!];
+  }
+
   bool _embaralharQuestoes = true;
   bool _embaralharAlternativas = true;
 
@@ -90,15 +104,8 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
     super.dispose();
   }
 
-  List<Questao> get _questoesExibidas {
-    if (_disciplinaSelecionada == null) return [];
-    if (_assuntoSelecionado != null) {
-      return _assuntoSelecionado!.questoes;
-    }
-    return _disciplinaSelecionada!.assuntos
-        .expand((assunto) => assunto.questoes)
-        .toList();
-  }
+  List<Questao> get _questoesExibidas =>
+      _assuntosExibidos.expand((assunto) => assunto.questoes).toList();
 
   void _gerarProvas() {
     if (!_formKey.currentState!.validate()) return;
@@ -147,7 +154,11 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
       id: gerarIdProva(),
       titulo: _tituloController.text.trim(),
       turma: _turmaSelecionada!,
-      assunto: _assuntoSelecionado!,
+      assunto: _todosSelecionado
+          ? Assunto(id: '', nome: 'Todos os assuntos', questoes: _questoesExibidas)
+          : _assuntoSelecionado!,
+      disciplinaId: _disciplinaSelecionada!.id,
+      nomeDisciplina: _disciplinaSelecionada!.descricao,
       questoes: _questoesSelecionadas.toList(),
       questoesPorProva: _sortearQuestoes ? _questoesPorProva : null,
       embaralharQuestoes: _embaralharQuestoes,
@@ -276,15 +287,25 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
                   border: OutlineInputBorder(),
                   prefixIcon: Icon(Icons.topic),
                 ),
-                items: (_disciplinaSelecionada?.assuntos ?? <Assunto>[])
-                    .map((assunto) => DropdownMenuItem(
-                          value: assunto,
-                          child: Text(
-                            assunto.nome,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ))
-                    .toList(),
+                items: [
+                  if (_disciplinaSelecionada != null &&
+                      _disciplinaSelecionada!.assuntos.isNotEmpty)
+                    DropdownMenuItem(
+                      value: _todosAssuntos,
+                      child: const Text(
+                        'Todos os assuntos',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ...(_disciplinaSelecionada?.assuntos ?? <Assunto>[])
+                      .map((assunto) => DropdownMenuItem(
+                            value: assunto,
+                            child: Text(
+                              assunto.nome,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          )),
+                ],
                 onChanged: _disciplinaSelecionada == null
                     ? null
                     : (assunto) {
@@ -372,7 +393,9 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
           children: [
             Expanded(
               child: Text(
-                'Questões de ${_assuntoSelecionado!.nome} (${_disciplinaSelecionada!.descricao})',
+                _todosSelecionado
+                    ? 'Questões de ${_disciplinaSelecionada!.descricao} (todos os assuntos)'
+                    : 'Questões de ${_assuntoSelecionado!.nome} (${_disciplinaSelecionada!.descricao})',
                 style: Theme.of(context).textTheme.titleMedium,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -391,11 +414,13 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
               borderRadius: BorderRadius.circular(10),
               side: BorderSide(color: Colors.grey.shade300),
             ),
-            child: const Padding(
-              padding: EdgeInsets.all(16.0),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
               child: Text(
-                'Nenhuma questão cadastrada para este assunto.',
-                style: TextStyle(color: Colors.grey),
+                _todosSelecionado
+                    ? 'Nenhuma questão cadastrada para esta disciplina.'
+                    : 'Nenhuma questão cadastrada para este assunto.',
+                style: const TextStyle(color: Colors.grey),
               ),
             ),
           )
@@ -408,50 +433,53 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Cabeçalho do Assunto
-                Container(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .primaryContainer
-                      .withAlpha(50),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 10),
-                  child: Text(
-                    'Assunto: ${_assuntoSelecionado!.nome}',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-                ),
-                const Divider(height: 1),
-
-                // Lista de Questões do Assunto
-                ..._assuntoSelecionado!.questoes.map((questao) {
-                  final selecionada = _questoesSelecionadas.contains(questao);
-
-                  return Column(
-                    children: [
-                      CheckboxListTile(
-                        value: selecionada,
-                        title: Text(questao.enunciado),
-                        subtitle: Text(
-                          '${questao.alternativas.length} alternativas',
+                for (final assunto in _assuntosExibidos)
+                  if (assunto.questoes.isNotEmpty) ...[
+                    // Cabeçalho do Assunto
+                    Container(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primaryContainer
+                          .withAlpha(50),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 10),
+                      child: Text(
+                        'Assunto: ${assunto.nome} (${assunto.questoes.length})',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.primary,
                         ),
-                        onChanged: (checked) {
-                          setState(() {
-                            if (checked == true) {
-                              _questoesSelecionadas.add(questao);
-                            } else {
-                              _questoesSelecionadas.remove(questao);
-                            }
-                          });
-                        },
                       ),
-                      const Divider(height: 1),
-                    ],
-                  );
-                }),
+                    ),
+                    const Divider(height: 1),
+
+                    // Lista de Questões do Assunto
+                    ...assunto.questoes.map((questao) {
+                      final selecionada = _questoesSelecionadas.contains(questao);
+
+                      return Column(
+                        children: [
+                          CheckboxListTile(
+                            value: selecionada,
+                            title: Text(questao.enunciado),
+                            subtitle: Text(
+                              '${questao.alternativas.length} alternativas',
+                            ),
+                            onChanged: (checked) {
+                              setState(() {
+                                if (checked == true) {
+                                  _questoesSelecionadas.add(questao);
+                                } else {
+                                  _questoesSelecionadas.remove(questao);
+                                }
+                              });
+                            },
+                          ),
+                          const Divider(height: 1),
+                        ],
+                      );
+                    }),
+                  ],
               ],
             ),
           ),

@@ -103,7 +103,7 @@ class _ConsultaProvasViewState extends State<ConsultaProvasView> {
                         itemBuilder: (context, index) {
                           final prova = provas[index];
                           final notas = analise.notasDaProva(prova.id);
-                          return _CardProva(
+                          return CardProva(
                             prova: prova,
                             notas: notas,
                             onTap: () => Navigator.push(
@@ -127,8 +127,14 @@ class _ConsultaProvasViewState extends State<ConsultaProvasView> {
   }
 }
 
-class _CardProva extends StatelessWidget {
-  const _CardProva({required this.prova, required this.notas, required this.onTap});
+/// Card de uma prova com a média e o andamento da correção.
+class CardProva extends StatelessWidget {
+  const CardProva({
+    super.key,
+    required this.prova,
+    required this.notas,
+    required this.onTap,
+  });
 
   final ProvaResumo prova;
   final List<NotaLancada> notas;
@@ -208,10 +214,16 @@ class _CardProva extends StatelessWidget {
                           cor: Colors.blue.shade700,
                         ),
                         _Etiqueta(
-                          texto: '${notas.length} '
-                              '${notas.length == 1 ? 'corrigida' : 'corrigidas'}',
-                          cor: Colors.teal.shade700,
+                          texto: prova.quantidadeVersoes == null
+                              ? '${notas.length} '
+                                  '${notas.length == 1 ? 'corrigida' : 'corrigidas'}'
+                              : '${notas.length}/${prova.quantidadeVersoes} corrigidas',
+                          cor: provaTotalmenteCorrigida(prova, notas)
+                              ? Colors.green.shade700
+                              : Colors.teal.shade700,
                         ),
+                        if (provaTotalmenteCorrigida(prova, notas))
+                          _Etiqueta(texto: 'Correção concluída', cor: Colors.green.shade700),
                         Text(
                           formatarData(prova.criadaEm),
                           style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
@@ -256,6 +268,14 @@ class _Etiqueta extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Todas as versões (alunos) da prova já têm correção.
+bool provaTotalmenteCorrigida(ProvaResumo prova, List<NotaLancada> notas) {
+  final total = prova.quantidadeVersoes;
+  if (total == null || total == 0) return false;
+  final corrigidas = notas.map((n) => n.correcao.codigoVersao).toSet().length;
+  return corrigidas >= total;
 }
 
 /// Notas de todos os alunos numa prova.

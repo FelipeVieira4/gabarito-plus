@@ -62,8 +62,8 @@ class OmrService {
       }
 
       // 4. Retificação de perspectiva para plano fixo
-      const int larguraAlvo = 800;
-      const int alturaAlvo = 1200;
+      const int larguraAlvo = LayoutFolhaOmr.largura;
+      const int alturaAlvo = LayoutFolhaOmr.altura;
 
       final srcPts = cv.VecPoint.fromList(ancoras.map((p) => cv.Point(p.x.toInt(), p.y.toInt())).toList());
       final dstPts = cv.VecPoint.fromList([
@@ -182,10 +182,10 @@ class OmrService {
     required int totalQuestoes,
     required int quantidadeAlternativas,
   }) {
-    const int margemEsquerda = 140;
-    const int margemDireita = 40;
-    const int margemSuperior = 60;
-    const int margemInferior = 60;
+    const int margemEsquerda = LayoutFolhaOmr.margemEsquerda;
+    const int margemDireita = LayoutFolhaOmr.margemDireita;
+    const int margemSuperior = LayoutFolhaOmr.margemSuperior;
+    const int margemInferior = LayoutFolhaOmr.margemInferior;
 
     final larguraUtil = warped.cols - margemEsquerda - margemDireita;
     final alturaUtil = warped.rows - margemSuperior - margemInferior;
@@ -195,14 +195,14 @@ class OmrService {
 
     final respostas = <int?>[];
     final alertas = <int>[];
-    const double limiarMarcado = 0.42;
+    const double limiarMarcado = LayoutFolhaOmr.limiarMarcado;
 
     for (var q = 0; q < totalQuestoes; q++) {
       final marcadasNaQuestao = <int>[];
 
       for (var alt = 0; alt < quantidadeAlternativas; alt++) {
-        final padX = (larguraColuna * 0.15).round();
-        final padY = (alturaLinha * 0.15).round();
+        final padX = (larguraColuna * LayoutFolhaOmr.recuoCelula).round();
+        final padY = (alturaLinha * LayoutFolhaOmr.recuoCelula).round();
 
         final x = (margemEsquerda + alt * larguraColuna + padX).round();
         final y = (margemSuperior + q * alturaLinha + padY).round();

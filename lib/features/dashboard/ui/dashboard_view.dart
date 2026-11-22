@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:gabarito_plus/features/correcao_prova/views/correcao/camera_correcao.dart';
-import 'package:gabarito_plus/features/correcao_prova/views/correcao/consulta_provas_corrigidas.dart';
 import 'package:gabarito_plus/features/dashboard/ui/consulta_disciplinas.dart';
 import 'package:gabarito_plus/features/dashboard/ui/dashboard_alunos.dart';
 import 'package:gabarito_plus/features/geracao_prova/ui/configuracao_prova.dart';
@@ -117,7 +116,7 @@ class DashboardView extends StatelessWidget {
                         ),
                         _buildMenuCard(
                           context,
-                          'Provas & Desempenho',
+                          'Provas e Desempenho',
                           Icons.insights,
                           Colors.indigo,
                           () => Navigator.push(
@@ -148,19 +147,6 @@ class DashboardView extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (context) => const CameraCorrecao(),
-                            ),
-                          ),
-                        ),
-                        _buildMenuCard(
-                          context,
-                          'Provas Corrigidas',
-                          Icons.fact_check,
-                          Colors.teal,
-                          () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  const ConsultaProvasCorrigidasView(),
                             ),
                           ),
                         ),

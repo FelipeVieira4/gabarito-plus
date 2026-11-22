@@ -50,7 +50,8 @@ class ProvaRepositoryFirestore implements ProvaRepository {
     }
 
     final batch = _db.batch();
-    batch.set(provaRef, prova.toMap());
+    // quantidadeVersoes: usada para saber se a prova já foi toda corrigida.
+    batch.set(provaRef, {...prova.toMap(), 'quantidadeVersoes': versoes.length});
     for (final versao in versoes) {
       batch.set(provaRef.collection('versoes').doc(versao.codigo), versao.toMap());
     }

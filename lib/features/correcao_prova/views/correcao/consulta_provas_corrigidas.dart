@@ -21,10 +21,19 @@ class ConsultaProvasCorrigidasView extends StatefulWidget {
     super.key,
     this.onSelecionarCorrecao,
     this.notaCorte = 6.0,
+    this.provaId,
+    this.titulo,
   });
 
   final void Function(Correcao correcao)? onSelecionarCorrecao;
   final double notaCorte;
+
+  /// Mostra só as correções desta prova (detalhe vindo da lista de provas
+  /// corrigidas). Null = todas as correções.
+  final String? provaId;
+
+  /// Título da AppBar. Null = "Provas Corrigidas".
+  final String? titulo;
 
   @override
   State<ConsultaProvasCorrigidasView> createState() =>
@@ -64,7 +73,16 @@ class _ConsultaProvasCorrigidasViewState
     });
 
     try {
-      final correcoes = await _repository.obterTodas();
+      var correcoes = await _repository.obterTodas();
+      final provaId = widget.provaId;
+      if (provaId != null) {
+        // Correções antigas sem provaId: o código da versão começa pelo id.
+        correcoes = correcoes
+            .where((c) =>
+                c.provaId == provaId ||
+                (c.provaId.isEmpty && c.codigoVersao.startsWith('$provaId-')))
+            .toList();
+      }
       if (!mounted) return;
       setState(() {
         _correcoes = correcoes;
@@ -251,7 +269,7 @@ class _ConsultaProvasCorrigidasViewState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Provas Corrigidas'),
+        title: Text(widget.titulo ?? 'Provas Corrigidas'),
       ),
       body: Center(
         child: ConstrainedBox(
@@ -379,6 +397,19 @@ class _ConsultaProvasCorrigidasViewState
                             onPressed: _limparFiltros,
                           )
                         : null;
+
+                    // Detalhe de uma prova: turma e prova já estão definidas.
+                    if (widget.provaId != null) {
+                      return Row(
+                        children: [
+                          Expanded(child: dropdownOrdenacao),
+                          if (botaoLimpar != null) ...[
+                            const SizedBox(width: 4),
+                            botaoLimpar,
+                          ],
+                        ],
+                      );
+                    }
 
                     if (isWide) {
                       return Row(
