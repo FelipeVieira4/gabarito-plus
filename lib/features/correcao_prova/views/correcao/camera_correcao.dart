@@ -101,7 +101,8 @@ class _CameraCorrecaoState extends State<CameraCorrecao> {
   }
 
   Future<void> _processarImagemFolha(Uint8List imageBytes) async {
-    final gabarito = _gabarito!;
+    final gabarito = _gabarito;
+    if (gabarito == null) return;
     setState(() => _lendoOmr = true);
 
     try {
@@ -350,9 +351,13 @@ class _CameraCorrecaoState extends State<CameraCorrecao> {
         _PainelAcoes(
           children: [
             FilledButton.icon(
-              onPressed: _iniciarMarcacaoManual,
+              onPressed: _lendoOmr ? null : _iniciarMarcacaoManual,
               icon: const Icon(Icons.edit_note),
-              label: const Text('Marcar respostas manualmente'),
+              label: Text(
+                _lendoOmr
+                    ? 'Lendo folha de respostas...'
+                    : 'Marcar respostas manualmente',
+              ),
             ),
           ],
         ),
