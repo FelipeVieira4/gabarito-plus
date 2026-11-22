@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gabarito_plus/features/correcao_prova/ui/camera_correcao.dart';
-import 'package:gabarito_plus/features/correcao_prova/dashboard/ui/consulta_disciplinas.dart';
+import 'package:gabarito_plus/features/disciplina/ui/consulta_disciplinas.dart';
 import 'package:gabarito_plus/features/correcao_prova/dashboard/ui/dashboard_alunos.dart';
 import 'package:gabarito_plus/features/geracao_prova/ui/configuracao_prova.dart';
 import 'package:gabarito_plus/features/professor/ui/profile_view.dart';
