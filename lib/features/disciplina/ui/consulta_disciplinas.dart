@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gabarito_plus/features/disciplina/data/assunto.dart';
 import 'package:gabarito_plus/features/disciplina/data/disciplina.dart';
 import 'package:gabarito_plus/features/disciplina/service/disciplinas_service.dart';
 
@@ -58,6 +59,56 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
       return bateDisciplina || bateAssunto;
     }).toList();
   }
+
+  // ---------------------------------------------------------------------------
+  // Utilitários
+  // ---------------------------------------------------------------------------
+
+  void _mensagem(String texto, {Color? cor}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(texto), backgroundColor: cor),
+    );
+  }
+
+  Future<bool> _confirmar({
+    required String titulo,
+    required String mensagem,
+  }) async {
+    final resultado = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(titulo),
+        content: Text(mensagem),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    return resultado ?? false;
+  }
+
+  Future<String?> _abrirModal(WidgetBuilder builder) {
+    return showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: builder,
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Cadastro
+  // ---------------------------------------------------------------------------
 
   void _exibirOpcoesCadastro() {
     showModalBottomSheet(
@@ -141,16 +192,8 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
   }
 
   Future<void> _exibirModalNovaDisciplina() async {
-    final disciplinaIdCriada = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (modalContext) => ModalCadastroDisciplina(
-        onSalvo: () {},
-      ),
-    );
+    final disciplinaIdCriada =
+        await _abrirModal((_) => const ModalCadastroDisciplina());
 
     if (disciplinaIdCriada != null) {
       _disciplinaExpandidaId = disciplinaIdCriada;
@@ -159,16 +202,8 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
   }
 
   Future<void> _exibirModalNovoAssunto() async {
-    final disciplinaIdAtualizada = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (modalContext) => ModalCadastroAssunto(
-        disciplinas: _disciplinas,
-        onSalvo: () {},
-      ),
+    final disciplinaIdAtualizada = await _abrirModal(
+      (_) => ModalCadastroAssunto(disciplinas: _disciplinas),
     );
 
     if (disciplinaIdAtualizada != null) {
@@ -176,6 +211,127 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
       await _carregarDisciplinas();
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Manutenção: disciplina
+  // ---------------------------------------------------------------------------
+
+  Future<void> _editarDisciplina(Disciplina disciplina) async {
+    final id = await _abrirModal(
+      (_) => ModalCadastroDisciplina(disciplina: disciplina),
+    );
+    if (id != null) {
+      _disciplinaExpandidaId = id;
+      await _carregarDisciplinas();
+    }
+  }
+
+  Future<void> _excluirDisciplina(Disciplina disciplina) async {
+    if (disciplina.assuntos.isNotEmpty) {
+      _mensagem(
+        'Exclua ou mova os ${disciplina.assuntos.length} assunto(s) '
+        'desta disciplina antes de excluí-la.',
+        cor: Colors.orange,
+      );
+      return;
+    }
+    final ok = await _confirmar(
+      titulo: 'Excluir disciplina',
+      mensagem: 'Deseja excluir "${disciplina.descricao}"?',
+    );
+    if (!ok) return;
+
+    try {
+      await _service.excluirDisciplina(disciplina.id);
+      if (!mounted) return;
+      _mensagem('Disciplina excluída!', cor: Colors.green);
+      await _carregarDisciplinas();
+    } catch (e) {
+      if (!mounted) return;
+      _mensagem('Erro ao excluir disciplina: $e');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Manutenção: assunto
+  // ---------------------------------------------------------------------------
+
+  Future<void> _editarAssunto(Disciplina disciplina, Assunto assunto) async {
+    final id = await _abrirModal(
+      (_) => ModalCadastroAssunto(
+        disciplinas: _disciplinas,
+        assunto: assunto,
+        disciplinaInicialId: disciplina.id,
+      ),
+    );
+    if (id != null) {
+      _disciplinaExpandidaId = id;
+      await _carregarDisciplinas();
+    }
+  }
+
+  Future<void> _excluirAssunto(Disciplina disciplina, Assunto assunto) async {
+    if (assunto.questoes.isNotEmpty) {
+      _mensagem(
+        'Este assunto possui ${assunto.questoes.length} questão(ões) '
+        'e não pode ser excluído.',
+        cor: Colors.orange,
+      );
+      return;
+    }
+    final ok = await _confirmar(
+      titulo: 'Excluir assunto',
+      mensagem: 'Deseja excluir "${assunto.nome}"?',
+    );
+    if (!ok) return;
+
+    try {
+      await _service.excluirAssunto(assunto.id);
+      if (!mounted) return;
+      _disciplinaExpandidaId = disciplina.id;
+      _mensagem('Assunto excluído!', cor: Colors.green);
+      await _carregarDisciplinas();
+    } catch (e) {
+      if (!mounted) return;
+      _mensagem('Erro ao excluir assunto: $e');
+    }
+  }
+
+  Widget _menuOpcoes({
+    required String tooltip,
+    required VoidCallback onEditar,
+    required VoidCallback onExcluir,
+  }) {
+    return PopupMenuButton<String>(
+      tooltip: tooltip,
+      onSelected: (valor) {
+        if (valor == 'editar') onEditar();
+        if (valor == 'excluir') onExcluir();
+      },
+      itemBuilder: (_) => const [
+        PopupMenuItem(
+          value: 'editar',
+          child: ListTile(
+            leading: Icon(Icons.edit),
+            title: Text('Editar'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem(
+          value: 'excluir',
+          child: ListTile(
+            leading: Icon(Icons.delete, color: Colors.red),
+            title: Text('Excluir'),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Build
+  // ---------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -217,69 +373,104 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
               child: _carregando
                   ? const Center(child: CircularProgressIndicator())
                   : disciplinas.isEmpty
-                  ? const Center(
-                      child: Text('Nenhuma disciplina ou assunto encontrado.'),
-                    )
-                  : ListView.separated(
-                      itemCount: disciplinas.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final disciplina = disciplinas[index];
-                        final isExpandida =
-                            disciplina.id == _disciplinaExpandidaId;
+                      ? const Center(
+                          child: Text(
+                            'Nenhuma disciplina ou assunto encontrado.',
+                          ),
+                        )
+                      : ListView.separated(
+                          itemCount: disciplinas.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final disciplina = disciplinas[index];
+                            final isExpandida =
+                                disciplina.id == _disciplinaExpandidaId;
 
-                        return Card(
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: ExpansionTile(
-                            key: ValueKey('${disciplina.id}_$isExpandida'),
-                            initiallyExpanded: isExpandida,
-                            leading: CircleAvatar(
-                              backgroundColor: Theme.of(context)
-                                  .colorScheme
-                                  .primaryContainer,
-                              child: Icon(
-                                Icons.school,
-                                color: Theme.of(context).colorScheme.primary,
+                            return Card(
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                            ),
-                            title: Text(
-                              disciplina.descricao,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            subtitle: Text(
-                              '${disciplina.assuntos.length} assunto(s) cadastrado(s)',
-                            ),
-                            children: disciplina.assuntos.isEmpty
-                                ? [
-                                    const Padding(
-                                      padding: EdgeInsets.all(16.0),
-                                      child: Text(
-                                        'Nenhum assunto cadastrado para esta disciplina.',
-                                        style: TextStyle(color: Colors.grey),
-                                      ),
+                              child: ExpansionTile(
+                                key: ValueKey(
+                                  '${disciplina.id}_$isExpandida',
+                                ),
+                                initiallyExpanded: isExpandida,
+                                leading: CircleAvatar(
+                                  backgroundColor: Theme.of(context)
+                                      .colorScheme
+                                      .primaryContainer,
+                                  child: Icon(
+                                    Icons.school,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                                title: Text(
+                                  disciplina.descricao,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  '${disciplina.assuntos.length} assunto(s) cadastrado(s)',
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _menuOpcoes(
+                                      tooltip: 'Opções da disciplina',
+                                      onEditar: () =>
+                                          _editarDisciplina(disciplina),
+                                      onExcluir: () =>
+                                          _excluirDisciplina(disciplina),
                                     ),
-                                  ]
-                                : disciplina.assuntos.map((assunto) {
-                                    return ListTile(
-                                      leading: const Icon(
-                                        Icons.topic,
-                                        color: Colors.purple,
-                                      ),
-                                      title: Text(assunto.nome),
-                                      subtitle: Text(
-                                        '${assunto.questoes.length} questão(ões)',
-                                      ),
-                                    );
-                                  }).toList(),
-                          ),
-                        );
-                      },
-                    ),
+                                    Icon(
+                                      isExpandida
+                                          ? Icons.expand_less
+                                          : Icons.expand_more,
+                                    ),
+                                  ],
+                                ),
+                                children: disciplina.assuntos.isEmpty
+                                    ? [
+                                        const Padding(
+                                          padding: EdgeInsets.all(16.0),
+                                          child: Text(
+                                            'Nenhum assunto cadastrado para esta disciplina.',
+                                            style:
+                                                TextStyle(color: Colors.grey),
+                                          ),
+                                        ),
+                                      ]
+                                    : disciplina.assuntos.map((assunto) {
+                                        return ListTile(
+                                          leading: const Icon(
+                                            Icons.topic,
+                                            color: Colors.purple,
+                                          ),
+                                          title: Text(assunto.nome),
+                                          subtitle: Text(
+                                            '${assunto.questoes.length} questão(ões)',
+                                          ),
+                                          trailing: _menuOpcoes(
+                                            tooltip: 'Opções do assunto',
+                                            onEditar: () => _editarAssunto(
+                                              disciplina,
+                                              assunto,
+                                            ),
+                                            onExcluir: () => _excluirAssunto(
+                                              disciplina,
+                                              assunto,
+                                            ),
+                                          ),
+                                        );
+                                      }).toList(),
+                              ),
+                            );
+                          },
+                        ),
             ),
           ],
         ),
@@ -293,10 +484,17 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
   }
 }
 
+// =============================================================================
+// Modal: cadastro / edição de disciplina
+// =============================================================================
+
 class ModalCadastroDisciplina extends StatefulWidget {
   final VoidCallback? onSalvo;
 
-  const ModalCadastroDisciplina({super.key, this.onSalvo});
+  /// null = cadastro; preenchida = edição.
+  final Disciplina? disciplina;
+
+  const ModalCadastroDisciplina({super.key, this.onSalvo, this.disciplina});
 
   @override
   State<ModalCadastroDisciplina> createState() =>
@@ -305,9 +503,18 @@ class ModalCadastroDisciplina extends StatefulWidget {
 
 class _ModalCadastroDisciplinaState extends State<ModalCadastroDisciplina> {
   final _formKey = GlobalKey<FormState>();
-  final _nomeController = TextEditingController();
+  late final TextEditingController _nomeController;
   final _service = DisciplinasService();
   bool _salvando = false;
+
+  bool get _editando => widget.disciplina != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _nomeController =
+        TextEditingController(text: widget.disciplina?.descricao ?? '');
+  }
 
   @override
   void dispose() {
@@ -322,7 +529,10 @@ class _ModalCadastroDisciplinaState extends State<ModalCadastroDisciplina> {
     setState(() => _salvando = true);
 
     try {
-      final jaExiste = await _service.existeDisciplina(nomeDisciplina);
+      final jaExiste = await _service.existeDisciplina(
+        nomeDisciplina,
+        ignorarId: widget.disciplina?.id,
+      );
       if (!mounted) return;
 
       if (jaExiste) {
@@ -336,21 +546,29 @@ class _ModalCadastroDisciplinaState extends State<ModalCadastroDisciplina> {
         return;
       }
 
-      final novaDisciplinaId = await _service.criarDisciplina(nomeDisciplina);
+      final String id;
+      if (_editando) {
+        id = widget.disciplina!.id;
+        await _service.atualizarDisciplina(id: id, descricao: nomeDisciplina);
+      } else {
+        id = await _service.criarDisciplina(nomeDisciplina);
+      }
       if (!mounted) return;
 
-      if (widget.onSalvo != null) {
-        widget.onSalvo!();
-      }
+      widget.onSalvo?.call();
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Disciplina cadastrada com sucesso!'),
+        SnackBar(
+          content: Text(
+            _editando
+                ? 'Disciplina atualizada com sucesso!'
+                : 'Disciplina cadastrada com sucesso!',
+          ),
           backgroundColor: Colors.green,
         ),
       );
 
-      Navigator.pop(context, novaDisciplinaId);
+      Navigator.pop(context, id);
     } catch (e) {
       if (!mounted) return;
       setState(() => _salvando = false);
@@ -378,10 +596,12 @@ class _ModalCadastroDisciplinaState extends State<ModalCadastroDisciplina> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Cadastrar Nova Disciplina',
-                        style: TextStyle(
+                        _editando
+                            ? 'Editar Disciplina'
+                            : 'Cadastrar Nova Disciplina',
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
@@ -434,14 +654,26 @@ class _ModalCadastroDisciplinaState extends State<ModalCadastroDisciplina> {
   }
 }
 
+// =============================================================================
+// Modal: cadastro / edição de assunto
+// =============================================================================
+
 class ModalCadastroAssunto extends StatefulWidget {
   final List<Disciplina> disciplinas;
   final VoidCallback? onSalvo;
+
+  /// null = cadastro; preenchido = edição.
+  final Assunto? assunto;
+
+  /// Disciplina atual do assunto (usada na edição).
+  final String? disciplinaInicialId;
 
   const ModalCadastroAssunto({
     super.key,
     required this.disciplinas,
     this.onSalvo,
+    this.assunto,
+    this.disciplinaInicialId,
   });
 
   @override
@@ -450,10 +682,26 @@ class ModalCadastroAssunto extends StatefulWidget {
 
 class _ModalCadastroAssuntoState extends State<ModalCadastroAssunto> {
   final _formKey = GlobalKey<FormState>();
-  final _nomeController = TextEditingController();
+  late final TextEditingController _nomeController;
   final _service = DisciplinasService();
   Disciplina? _disciplinaSelecionada;
   bool _salvando = false;
+
+  bool get _editando => widget.assunto != null;
+
+  @override
+  void initState() {
+    super.initState();
+    _nomeController = TextEditingController(text: widget.assunto?.nome ?? '');
+    if (widget.disciplinaInicialId != null) {
+      for (final d in widget.disciplinas) {
+        if (d.id == widget.disciplinaInicialId) {
+          _disciplinaSelecionada = d;
+          break;
+        }
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -469,19 +717,29 @@ class _ModalCadastroAssuntoState extends State<ModalCadastroAssunto> {
     setState(() => _salvando = true);
 
     try {
-      await _service.criarAssunto(
-        disciplinaId: disciplina.id,
-        nome: nomeAssunto,
-      );
+      if (_editando) {
+        await _service.atualizarAssunto(
+          id: widget.assunto!.id,
+          nome: nomeAssunto,
+          disciplinaId: disciplina.id,
+        );
+      } else {
+        await _service.criarAssunto(
+          disciplinaId: disciplina.id,
+          nome: nomeAssunto,
+        );
+      }
       if (!mounted) return;
 
-      if (widget.onSalvo != null) {
-        widget.onSalvo!();
-      }
+      widget.onSalvo?.call();
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Assunto cadastrado com sucesso!'),
+        SnackBar(
+          content: Text(
+            _editando
+                ? 'Assunto atualizado com sucesso!'
+                : 'Assunto cadastrado com sucesso!',
+          ),
           backgroundColor: Colors.green,
         ),
       );
@@ -513,10 +771,12 @@ class _ModalCadastroAssuntoState extends State<ModalCadastroAssunto> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Cadastrar Novo Assunto',
-                        style: TextStyle(
+                        _editando
+                            ? 'Editar Assunto'
+                            : 'Cadastrar Novo Assunto',
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
