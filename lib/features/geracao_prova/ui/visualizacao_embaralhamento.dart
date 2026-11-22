@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/embaralhador.dart';
-import 'package:gabarito_plus/features/geracao_prova/data/prova.dart';
-import 'package:gabarito_plus/features/geracao_prova/data/versao_prova.dart';
-import 'package:gabarito_plus/features/geracao_prova/service/prova_repository.dart';
+import 'package:gabarito_plus/features/provas/data/prova.dart';
+import 'package:gabarito_plus/features/provas/data/versao_prova.dart';
 import 'package:gabarito_plus/features/geracao_prova/ui/gabarito_qrcode.dart';
+import 'package:gabarito_plus/features/provas/pdf/exportar_pdf.dart';
+import 'package:gabarito_plus/features/provas/pdf/prova_pdf.dart';
+import 'package:gabarito_plus/features/provas/service/prova_repository.dart';
 
 class VisualizacaoEmbaralhamento extends StatefulWidget {
   const VisualizacaoEmbaralhamento({super.key, required this.prova});
@@ -29,12 +31,13 @@ class _VisualizacaoEmbaralhamentoState extends State<VisualizacaoEmbaralhamento>
     setState(() => _versoes = Embaralhador.gerarVersoes(widget.prova));
   }
 
-  Future<void> _salvarProvas() async {
+  /// Retorna true se as provas ficaram salvas.
+  Future<bool> _salvarProvas() async {
     setState(() => _salvando = true);
     try {
       await ProvaRepository.instancia.salvar(widget.prova, _versoes);
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) return false;
       setState(() => _salvando = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -44,16 +47,56 @@ class _VisualizacaoEmbaralhamentoState extends State<VisualizacaoEmbaralhamento>
                   'tente de novo.'),
         ),
       );
-      return;
+      return false;
     }
 
-    if (!mounted) return;
+    if (!mounted) return true;
     setState(() {
       _salvando = false;
       _salva = true;
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('${_versoes.length} provas salvas')),
+    );
+    return true;
+  }
+
+  /// Uma prova impressa sem estar salva não é encontrada na correção
+  /// (o QR Code aponta para o gabarito no banco). Pede para salvar antes.
+  Future<bool> _garantirSalva() async {
+    if (_salva) return true;
+    final salvar = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Salvar antes de imprimir'),
+        content: const Text(
+          'As provas ainda não foram salvas. Sem salvar, a correção não '
+          'encontra o gabarito destas provas. Deseja salvar agora?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Salvar e continuar'),
+          ),
+        ],
+      ),
+    );
+    if (salvar != true || !mounted) return false;
+    return _salvarProvas();
+  }
+
+  Future<void> _exportarProvas() async {
+    if (!await _garantirSalva() || !mounted) return;
+    final prova = widget.prova;
+    final versoes = List<VersaoProva>.of(_versoes);
+    await exportarPdf(
+      context,
+      nomeArquivo: nomeArquivoPdf('${prova.titulo}_${prova.turma.nomeTurma}'),
+      gerar: () => ProvaPdf.todasAsProvas(prova, versoes),
     );
   }
 
@@ -65,6 +108,11 @@ class _VisualizacaoEmbaralhamentoState extends State<VisualizacaoEmbaralhamento>
       appBar: AppBar(
         title: const Text('Embaralhamento das Provas'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf),
+            tooltip: 'Exportar provas (PDF)',
+            onPressed: _salvando ? null : _exportarProvas,
+          ),
           IconButton(
             icon: const Icon(Icons.shuffle),
             // depois de salvas, as versões impressas precisam bater com o banco
@@ -89,7 +137,11 @@ class _VisualizacaoEmbaralhamentoState extends State<VisualizacaoEmbaralhamento>
                   children: [
                     Text(prova.titulo, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                     const SizedBox(height: 4),
-                    Text('Assunto: ${prova.assunto.nome}'),
+                    Text(
+                      prova.nomeDisciplina.isEmpty
+                          ? 'Assunto: ${prova.assunto.nome}'
+                          : 'Disciplina: ${prova.nomeDisciplina} · Assunto: ${prova.assunto.nome}',
+                    ),
                     const SizedBox(height: 2),
                     Text(
                       prova.sorteiaQuestoes
@@ -161,7 +213,11 @@ class _VisualizacaoEmbaralhamentoState extends State<VisualizacaoEmbaralhamento>
                   onVerGabarito: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => GabaritoQrCode(prova: prova, versao: versao),
+                      builder: (context) => GabaritoQrCode(
+                        prova: prova,
+                        versao: versao,
+                        antesDeExportar: _garantirSalva,
+                      ),
                     ),
                   ),
                 );
@@ -173,24 +229,41 @@ class _VisualizacaoEmbaralhamentoState extends State<VisualizacaoEmbaralhamento>
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: FilledButton.icon(
-            onPressed: _salva || _salvando ? null : _salvarProvas,
-            icon: _salvando
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(_salva ? Icons.check : Icons.save),
-            label: Text(
-              _salva
-                  ? 'Provas salvas'
-                  : _salvando
-                      ? 'Salvando...'
-                      : 'Salvar provas',
-            ),
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(48),
-            ),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _salvando ? null : _exportarProvas,
+                  icon: const Icon(Icons.picture_as_pdf),
+                  label: const Text('Exportar provas'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 48),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: _salva || _salvando ? null : _salvarProvas,
+                  icon: _salvando
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(_salva ? Icons.check : Icons.save),
+                  label: Text(
+                    _salva
+                        ? 'Provas salvas'
+                        : _salvando
+                            ? 'Salvando...'
+                            : 'Salvar provas',
+                  ),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 48),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

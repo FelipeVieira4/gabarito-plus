@@ -1,13 +1,34 @@
 import 'package:flutter/material.dart';
-import 'package:gabarito_plus/features/geracao_prova/data/prova.dart';
-import 'package:gabarito_plus/features/geracao_prova/data/versao_prova.dart';
+import 'package:gabarito_plus/features/provas/data/prova.dart';
+import 'package:gabarito_plus/features/provas/data/versao_prova.dart';
+import 'package:gabarito_plus/features/provas/pdf/exportar_pdf.dart';
+import 'package:gabarito_plus/features/provas/pdf/prova_pdf.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 class GabaritoQrCode extends StatelessWidget {
-  const GabaritoQrCode({super.key, required this.prova, required this.versao});
+  const GabaritoQrCode({
+    super.key,
+    required this.prova,
+    required this.versao,
+    this.antesDeExportar,
+  });
 
   final Prova prova;
   final VersaoProva versao;
+
+  /// Chamado antes de gerar o PDF (ex.: garantir que as provas foram
+  /// salvas). Se retornar false, a exportação é cancelada.
+  final Future<bool> Function()? antesDeExportar;
+
+  Future<void> _exportar(BuildContext context) async {
+    if (antesDeExportar != null && !await antesDeExportar!()) return;
+    if (!context.mounted) return;
+    await exportarPdf(
+      context,
+      nomeArquivo: nomeArquivoPdf('${prova.titulo}_${versao.aluno.nome}_${versao.codigo}'),
+      gerar: () => ProvaPdf.provaDoAluno(prova, versao),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,11 +114,7 @@ class GabaritoQrCode extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Exportação do gabarito em breve')),
-                );
-              },
+              onPressed: () => _exportar(context),
               icon: const Icon(Icons.print),
               label: const Text('Imprimir / Exportar'),
               style: ElevatedButton.styleFrom(

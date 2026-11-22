@@ -17,10 +17,21 @@ void main() {
       cv.rectangle(img, cv.Rect(800, 1200, 100, 100), cv.Scalar.black, thickness: cv.FILLED);
       
       void marcarBolha(int q, int alt) {
-        // Mapeia coordenadas para o espaço original, transladando 150px
-        int x = 150 + 140 + alt * 124 + 62;
-        int y = 150 + 60 + q * 108 + 54;
-        cv.circle(img, cv.Point(x, y), 35, cv.Scalar.black, thickness: cv.FILLED);
+        // Pinta a caixa da alternativa como o aluno faria. A caixa vem em
+        // coordenadas da imagem retificada (800x1200); os centros das âncoras
+        // vão de (150,150) a (850,1250), ou seja, 700x1100 na imagem.
+        final caixa = LayoutFolhaOmr.caixa(
+          questao: q,
+          alternativa: alt,
+          totalQuestoes: 10,
+          quantidadeAlternativas: 5,
+        );
+        int px(double x) => (150 + x * 700 / 800).round();
+        int py(double y) => (150 + y * 1100 / 1200).round();
+        final x0 = px(caixa.x), y0 = py(caixa.y);
+        final x1 = px(caixa.x + caixa.largura), y1 = py(caixa.y + caixa.altura);
+        cv.rectangle(img, cv.Rect(x0, y0, x1 - x0, y1 - y0), cv.Scalar.black,
+            thickness: cv.FILLED);
       }
       
       // Q0: Alt 0

@@ -5,10 +5,12 @@ import 'package:gabarito_plus/features/questoes/data/questao.dart';
 import 'package:gabarito_plus/core/professor_db.dart';
 
 class DisciplinasService {
-  CollectionReference<Map<String, dynamic>> get _disciplinas => ProfessorDb.colecao('disciplinas');
-  CollectionReference<Map<String, dynamic>> get _assuntos => ProfessorDb.colecao('assuntos');
-  CollectionReference<Map<String, dynamic>> get _questoes => ProfessorDb.colecao('questoes');
-
+  CollectionReference<Map<String, dynamic>> get _disciplinas =>
+      ProfessorDb.colecao('disciplinas');
+  CollectionReference<Map<String, dynamic>> get _assuntos =>
+      ProfessorDb.colecao('assuntos');
+  CollectionReference<Map<String, dynamic>> get _questoes =>
+      ProfessorDb.colecao('questoes');
 
   Future<List<Disciplina>> listarDisciplinas() async {
     final snaps = await Future.wait([
@@ -61,12 +63,13 @@ class DisciplinasService {
     return lista;
   }
 
-  Future<bool> existeDisciplina(String descricao) async {
+  /// [ignorarId] permite ignorar a própria disciplina ao editar.
+  Future<bool> existeDisciplina(String descricao, {String? ignorarId}) async {
     final snap = await _disciplinas
         .where('descricaoBusca', isEqualTo: descricao.trim().toLowerCase())
-        .limit(1)
+        .limit(2)
         .get();
-    return snap.docs.isNotEmpty;
+    return snap.docs.any((d) => d.id != ignorarId);
   }
 
   Future<String> criarDisciplina(String descricao) async {
@@ -74,6 +77,21 @@ class DisciplinasService {
     final doc = await _disciplinas.add(disciplina.toMap());
     return doc.id;
   }
+
+  /// Se o toMap() de Disciplina gravar outros campos derivados,
+  /// inclua-os aqui também.
+  Future<void> atualizarDisciplina({
+    required String id,
+    required String descricao,
+  }) {
+    final texto = descricao.trim();
+    return _disciplinas.doc(id).update({
+      'descricao': texto,
+      'descricaoBusca': texto.toLowerCase(),
+    });
+  }
+
+  Future<void> excluirDisciplina(String id) => _disciplinas.doc(id).delete();
 
   Future<String> criarAssunto({
     required String disciplinaId,
@@ -83,4 +101,19 @@ class DisciplinasService {
     final doc = await _assuntos.add(assunto.toMap(disciplinaId: disciplinaId));
     return doc.id;
   }
+
+  /// Se o toMap() de Assunto gravar outros campos derivados
+  /// (ex.: nomeBusca), inclua-os aqui também.
+  Future<void> atualizarAssunto({
+    required String id,
+    required String nome,
+    required String disciplinaId,
+  }) {
+    return _assuntos.doc(id).update({
+      'nome': nome.trim(),
+      'disciplinaId': disciplinaId,
+    });
+  }
+
+  Future<void> excluirAssunto(String id) => _assuntos.doc(id).delete();
 }

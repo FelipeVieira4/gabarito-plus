@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gabarito_plus/features/auth/service/auth_service.dart';
-import 'package:gabarito_plus/features/correcao_prova/views/auth/cadastro_professor_view.dart';
-import 'package:gabarito_plus/features/dashboard/ui/dashboard_view.dart';
+import 'package:gabarito_plus/features/auth/ui/recuperar_senha_view.dart';
+import 'package:gabarito_plus/features/correcao_prova/dashboard/ui/dashboard_view.dart';
+import 'package:gabarito_plus/features/provas/ui/cadastro_professor_view.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -59,6 +60,21 @@ class _LoginViewState extends State<LoginView> {
         });
       }
     }
+  }
+
+  Future<void> _abrirRecuperarSenha() async {
+    final email = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RecuperarSenhaView(emailInicial: _emailController.text.trim()),
+      ),
+    );
+    if (email == null || !mounted) return;
+    _emailController.text = email;
+    _passwordController.clear();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Senha alterada! Entre com a nova senha.')),
+    );
   }
 
   @override
@@ -131,7 +147,14 @@ class _LoginViewState extends State<LoginView> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 32),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: _carregando ? null : _abrirRecuperarSenha,
+                      child: const Text('Esqueci minha senha'),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: _carregando ? null : _realizarLogin,
                     style: ElevatedButton.styleFrom(

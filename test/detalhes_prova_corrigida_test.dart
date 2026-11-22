@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gabarito_plus/features/correcao_prova/views/correcao/detalhes_prova_corrigida_view.dart';
+import 'package:gabarito_plus/features/correcao_prova/ui/detalhes_prova_corrigida_view.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/correcao.dart';
 
 void main() {

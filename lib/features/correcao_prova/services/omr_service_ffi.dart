@@ -62,8 +62,8 @@ class OmrService {
       }
 
       // 4. Retificação de perspectiva para plano fixo
-      const int larguraAlvo = 800;
-      const int alturaAlvo = 1200;
+      const int larguraAlvo = LayoutFolhaOmr.largura;
+      const int alturaAlvo = LayoutFolhaOmr.altura;
 
       final srcPts = cv.VecPoint.fromList(ancoras.map((p) => cv.Point(p.x.toInt(), p.y.toInt())).toList());
       final dstPts = cv.VecPoint.fromList([
@@ -182,32 +182,29 @@ class OmrService {
     required int totalQuestoes,
     required int quantidadeAlternativas,
   }) {
-    const int margemEsquerda = 140;
-    const int margemDireita = 40;
-    const int margemSuperior = 60;
-    const int margemInferior = 60;
-
-    final larguraUtil = warped.cols - margemEsquerda - margemDireita;
-    final alturaUtil = warped.rows - margemSuperior - margemInferior;
-
-    final alturaLinha = alturaUtil / totalQuestoes;
-    final larguraColuna = larguraUtil / quantidadeAlternativas;
-
     final respostas = <int?>[];
     final alertas = <int>[];
-    const double limiarMarcado = 0.42;
+    const double limiarMarcado = LayoutFolhaOmr.limiarMarcado;
 
     for (var q = 0; q < totalQuestoes; q++) {
       final marcadasNaQuestao = <int>[];
 
       for (var alt = 0; alt < quantidadeAlternativas; alt++) {
-        final padX = (larguraColuna * 0.15).round();
-        final padY = (alturaLinha * 0.15).round();
+        // Mede o miolo da caixa impressa (sem a borda), na mesma posição
+        // em que o PDF desenha a caixa.
+        final caixa = LayoutFolhaOmr.caixa(
+          questao: q,
+          alternativa: alt,
+          totalQuestoes: totalQuestoes,
+          quantidadeAlternativas: quantidadeAlternativas,
+        );
+        final recuoX = caixa.largura * 0.15;
+        final recuoY = caixa.altura * 0.15;
 
-        final x = (margemEsquerda + alt * larguraColuna + padX).round();
-        final y = (margemSuperior + q * alturaLinha + padY).round();
-        final w = math.max(1, (larguraColuna - 2 * padX).round());
-        final h = math.max(1, (alturaLinha - 2 * padY).round());
+        final x = (caixa.x + recuoX).round().clamp(0, warped.cols - 1);
+        final y = (caixa.y + recuoY).round().clamp(0, warped.rows - 1);
+        final w = math.max(1, math.min((caixa.largura - 2 * recuoX).round(), warped.cols - x));
+        final h = math.max(1, math.min((caixa.altura - 2 * recuoY).round(), warped.rows - y));
 
         final celula = warped.region(cv.Rect(x, y, w, h));
         final pixelsPreenchidos = cv.countNonZero(celula);

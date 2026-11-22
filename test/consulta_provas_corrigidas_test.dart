@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gabarito_plus/features/correcao_prova/services/correcao_repository.dart';
-import 'package:gabarito_plus/features/correcao_prova/views/correcao/consulta_provas_corrigidas.dart';
-import 'package:gabarito_plus/features/dashboard/ui/dashboard_view.dart';
+import 'package:gabarito_plus/features/correcao_prova/ui/consulta_provas_corrigidas.dart';
+import 'package:gabarito_plus/features/correcao_prova/dashboard/ui/dashboard_view.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/correcao.dart';
 
 import 'helpers/correcao_repository_memoria.dart';
@@ -130,21 +130,16 @@ void main() {
     expect(selecionada!.nomeAluno, 'Ana Maria');
   });
 
-  testWidgets('DashboardView possui atalho para Provas Corrigidas',
+  testWidgets('Provas Corrigidas fica dentro de Provas e Desempenho',
       (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: DashboardView(nomeUsuario: 'Prof. Teste')),
     );
     await tester.pumpAndSettle();
 
-    final cardConsulta = find.text('Provas Corrigidas');
-    expect(cardConsulta, findsOneWidget);
-
-    await tester.ensureVisible(cardConsulta);
-    await tester.tap(cardConsulta);
-    await tester.pumpAndSettle();
-
-    expect(find.byType(ConsultaProvasCorrigidasView), findsOneWidget);
-    expect(find.text('Ana Maria'), findsOneWidget);
+    // A consulta de correções saiu do menu principal e é aberta pelo
+    // dashboard de Provas e Desempenho.
+    expect(find.text('Provas e Desempenho'), findsOneWidget);
+    expect(find.text('Provas Corrigidas'), findsNothing);
   });
 }
