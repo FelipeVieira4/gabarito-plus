@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gabarito_plus/features/provas/data/prova.dart';
 import 'package:gabarito_plus/features/provas/data/versao_prova.dart';
 import 'package:gabarito_plus/features/provas/pdf/exportar_pdf.dart';
+import 'package:gabarito_plus/features/provas/pdf/layout_prova_pdf.dart';
 import 'package:gabarito_plus/features/provas/pdf/prova_pdf.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -11,10 +12,12 @@ class GabaritoQrCode extends StatelessWidget {
     required this.prova,
     required this.versao,
     this.antesDeExportar,
+    this.layout = const LayoutProvaPdf(),
   });
 
   final Prova prova;
   final VersaoProva versao;
+  final LayoutProvaPdf layout;
 
   /// Chamado antes de gerar o PDF (ex.: garantir que as provas foram
   /// salvas). Se retornar false, a exportação é cancelada.
@@ -25,8 +28,10 @@ class GabaritoQrCode extends StatelessWidget {
     if (!context.mounted) return;
     await exportarPdf(
       context,
-      nomeArquivo: nomeArquivoPdf('${prova.titulo}_${versao.aluno.nome}_${versao.codigo}'),
-      gerar: () => ProvaPdf.provaDoAluno(prova, versao),
+      nomeArquivo: nomeArquivoPdf(
+        '${prova.titulo}_${versao.aluno.nome}_${versao.codigo}',
+      ),
+      gerar: () => ProvaPdf.provaDoAluno(prova, versao, layout: layout),
     );
   }
 
@@ -42,13 +47,21 @@ class GabaritoQrCode extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Text(prova.titulo, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text(
+              prova.titulo,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 4),
-            Text(prova.turma.nomeTurma, style: TextStyle(color: Colors.grey[600])),
+            Text(
+              prova.turma.nomeTurma,
+              style: TextStyle(color: Colors.grey[600]),
+            ),
             const SizedBox(height: 24),
             Card(
               elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
@@ -69,7 +82,11 @@ class GabaritoQrCode extends StatelessWidget {
                     const SizedBox(height: 12),
                     Text(
                       versao.codigo,
-                      style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, letterSpacing: 1),
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -81,7 +98,11 @@ class GabaritoQrCode extends StatelessWidget {
                       'Ao escanear com a câmera do celular, o gabarito desta versão\n'
                       'aparece como texto, pronto para copiar ou compartilhar.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 11, color: Colors.grey[500], fontStyle: FontStyle.italic),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey[500],
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
                   ],
                 ),
@@ -90,7 +111,10 @@ class GabaritoQrCode extends StatelessWidget {
             const SizedBox(height: 24),
             Align(
               alignment: Alignment.centerLeft,
-              child: Text('Respostas corretas', style: Theme.of(context).textTheme.titleMedium),
+              child: Text(
+                'Respostas corretas',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
             ),
             const SizedBox(height: 8),
             Card(
@@ -104,7 +128,9 @@ class GabaritoQrCode extends StatelessWidget {
                 itemCount: versao.questoes.length,
                 separatorBuilder: (context, index) => const Divider(height: 1),
                 itemBuilder: (context, index) {
-                  final letra = String.fromCharCode(65 + versao.questoes[index].respostaCorreta);
+                  final letra = String.fromCharCode(
+                    65 + versao.questoes[index].respostaCorreta,
+                  );
                   return ListTile(
                     leading: CircleAvatar(child: Text('${index + 1}')),
                     title: Text('Alternativa correta: $letra'),

@@ -5,7 +5,7 @@ import 'package:gabarito_plus/features/aluno/ui/cadastro_aluno.dart';
 import 'package:gabarito_plus/features/aluno/ui/consulta_aluno.dart';
 import 'package:gabarito_plus/features/turma/ui/cadastro_turma.dart';
 import 'package:gabarito_plus/features/turma/ui/consulta_turma.dart';
-import '../../../professor/ui/profile_view.dart';
+import '../../professor/ui/profile_view.dart';
 
 class DashboardAluno extends StatelessWidget {
   const DashboardAluno({super.key});
@@ -147,21 +147,31 @@ class DashboardAluno extends StatelessWidget {
   Widget _buildMenuCard(BuildContext context, String title, IconData icon, Color color, VoidCallback onTap) {
     return Card(
       elevation: 4,
+      margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 40, color: color),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 36, color: color),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  height: 1.15,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

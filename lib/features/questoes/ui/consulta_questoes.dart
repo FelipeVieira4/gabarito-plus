@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gabarito_plus/widgets/menu_opcoes.dart';
 import 'package:gabarito_plus/features/disciplina/data/assunto.dart';
 import 'package:gabarito_plus/features/disciplina/data/disciplina.dart';
 import 'package:gabarito_plus/features/questoes/data/questao.dart';
@@ -101,6 +102,32 @@ class _ListaQuestoesViewState extends State<ListaQuestoesView> {
 
     if (editouComSucesso == true) {
       _carregarQuestoes();
+    }
+  }
+
+  Future<void> _excluirQuestao(Questao questao) async {
+    final ok = await confirmarExclusao(
+      context,
+      titulo: 'Excluir questão',
+      mensagem: 'Deseja excluir esta questão?',
+    );
+    if (!ok) return;
+
+    try {
+      await _service.excluirQuestao(questao.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Questão excluída!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      _carregarQuestoes();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao excluir questão: $e')),
+      );
     }
   }
 
@@ -232,14 +259,12 @@ class _ListaQuestoesViewState extends State<ListaQuestoesView> {
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.edit,
-                                            color: Colors.blue),
-                                        tooltip: 'Editar questão',
-                                        onPressed: () {
-                                          _abrirEdicaoQuestao(
-                                              questao, disciplina, assunto);
-                                        },
+                                      MenuOpcoes(
+                                        tooltip: 'Opções da questão',
+                                        onEditar: () => _abrirEdicaoQuestao(
+                                            questao, disciplina, assunto),
+                                        onExcluir: () =>
+                                            _excluirQuestao(questao),
                                       ),
                                       const Icon(Icons.arrow_forward_ios,
                                           size: 16.0),

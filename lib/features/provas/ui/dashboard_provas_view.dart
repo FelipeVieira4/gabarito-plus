@@ -149,18 +149,21 @@ class _DashboardProvasViewState extends State<DashboardProvasView> {
                     childAspectRatio: largo ? 1.4 : 1.2,
                     children: [
                       _cardMenu(
+                        context,
                         'Consulta de Provas',
                         Icons.search,
                         Colors.blue,
                         () => _abrir(ConsultaProvasView(analise: _analise, filtroInicial: filtro)),
                       ),
                       _cardMenu(
+                        context,
                         'Desempenho das Turmas',
                         Icons.bar_chart,
                         Colors.indigo,
                         () => _abrir(DesempenhoTurmasView(analise: _analise, filtroInicial: filtro)),
                       ),
                       _cardMenu(
+                        context,
                         'Provas Corrigidas',
                         Icons.fact_check,
                         Colors.teal,
@@ -217,24 +220,32 @@ class _DashboardProvasViewState extends State<DashboardProvasView> {
     );
   }
 
-  Widget _cardMenu(String titulo, IconData icone, Color cor, VoidCallback onTap) {
+  Widget _cardMenu(BuildContext context, String titulo, IconData icone, Color cor, VoidCallback onTap) {
+    final isLargo = MediaQuery.sizeOf(context).width >= 700;
     return Card(
       elevation: 4,
+      margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icone, size: 40, color: cor),
-              const SizedBox(height: 12),
+              Icon(icone, size: isLargo ? 40 : 32, color: cor),
+              SizedBox(height: isLargo ? 12 : 6),
               Text(
                 titulo,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: isLargo ? 14 : 12.5,
+                  fontWeight: FontWeight.bold,
+                  height: 1.15,
+                ),
               ),
             ],
           ),

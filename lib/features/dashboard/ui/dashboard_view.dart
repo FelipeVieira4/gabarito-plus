@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:gabarito_plus/features/correcao_prova/ui/camera_correcao.dart';
 import 'package:gabarito_plus/features/disciplina/ui/consulta_disciplinas.dart';
-import 'package:gabarito_plus/features/correcao_prova/dashboard/ui/dashboard_alunos.dart';
+import 'package:gabarito_plus/features/dashboard/ui/dashboard_alunos.dart';
 import 'package:gabarito_plus/features/geracao_prova/ui/configuracao_prova.dart';
 import 'package:gabarito_plus/features/professor/ui/profile_view.dart';
 import 'package:gabarito_plus/features/provas/ui/dashboard_provas_view.dart';
 import 'package:gabarito_plus/features/questoes/ui/consulta_questoes.dart';
 import 'package:gabarito_plus/features/auth/service/auth_service.dart';
-
+ 
 class DashboardView extends StatelessWidget {
   const DashboardView({super.key, this.nomeUsuario});
-
+ 
   /// Só para testes (eles não têm Firebase). No app vem do login.
   final String? nomeUsuario;
-
+ 
   @override
   Widget build(BuildContext context) {
     final nome = nomeUsuario ?? AuthService().usuarioAtual?.displayName;
@@ -35,7 +35,7 @@ class DashboardView extends StatelessWidget {
       body: LayoutBuilder(
         builder: (context, constraints) {
           final largura = constraints.maxWidth;
-
+ 
           // Breakpoints: mobile < 700, tablet 700–1100, desktop >= 1100
           final int crossAxisCount;
           final double aspectRatio;
@@ -49,7 +49,7 @@ class DashboardView extends StatelessWidget {
             crossAxisCount = 2;
             aspectRatio = 1.0;
           }
-
+ 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
             child: Center(
@@ -94,11 +94,11 @@ class DashboardView extends StatelessWidget {
                           'Disciplinas & Assuntos',
                           Icons.bookmark,
                           Colors.purple,
-                              () => Navigator.push(
+                          () => Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
-                              const ConsultaDisciplinasView(),
+                                  const ConsultaDisciplinasView(),
                             ),
                           ),
                         ),
@@ -111,18 +111,6 @@ class DashboardView extends StatelessWidget {
                             context,
                             MaterialPageRoute(
                               builder: (context) => const ListaQuestoesView(),
-                            ),
-                          ),
-                        ),
-                        _buildMenuCard(
-                          context,
-                          'Provas e Desempenho',
-                          Icons.insights,
-                          Colors.indigo,
-                          () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const DashboardProvasView(),
                             ),
                           ),
                         ),
@@ -150,6 +138,18 @@ class DashboardView extends StatelessWidget {
                             ),
                           ),
                         ),
+                        _buildMenuCard(
+                          context,
+                          'Provas e Desempenho',
+                          Icons.insights,
+                          Colors.indigo,
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const DashboardProvasView(),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -161,7 +161,7 @@ class DashboardView extends StatelessWidget {
       ),
     );
   }
-
+ 
   Widget _buildMenuCard(
     BuildContext context,
     String title,
@@ -171,23 +171,34 @@ class DashboardView extends StatelessWidget {
   ) {
     return Card(
       elevation: 4,
+      margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 40, color: color),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 36, color: color),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  height: 1.15,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
+ 

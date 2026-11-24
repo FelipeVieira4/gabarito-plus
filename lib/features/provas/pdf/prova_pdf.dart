@@ -1,20 +1,24 @@
 import 'dart:typed_data';
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:gabarito_plus/features/correcao_prova/services/omr_service_models.dart';
 import 'package:gabarito_plus/features/provas/data/prova.dart';
 import 'package:gabarito_plus/features/provas/data/versao_prova.dart';
+import 'package:gabarito_plus/features/provas/pdf/layout_prova_pdf.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
+import 'package:barcode/barcode.dart';
 
 String _letra(int indice) => String.fromCharCode(65 + indice);
 
 /// Maior quantidade de alternativas entre as questões da versão. É o mesmo
 /// cálculo de `GabaritoLido.daVersao`, que a leitura da folha usa para
 /// dividir as colunas: precisa bater com a folha impressa.
-int quantidadeAlternativasDaVersao(VersaoProva versao) => versao.questoes.fold<int>(
+int quantidadeAlternativasDaVersao(VersaoProva versao) =>
+    versao.questoes.fold<int>(
       0,
-      (maior, q) => q.alternativas.length > maior ? q.alternativas.length : maior,
+      (maior, q) =>
+          q.alternativas.length > maior ? q.alternativas.length : maior,
     );
 
 /// Folha de respostas em pontos do PDF, a partir da geometria do leitor
@@ -26,7 +30,10 @@ int quantidadeAlternativasDaVersao(VersaoProva versao) => versao.questoes.fold<i
 /// poucas questões as caixas ficam juntas no topo (a grade tem no mínimo
 /// [LayoutFolhaOmr.linhasMinimas] linhas).
 class GeometriaFolha {
-  GeometriaFolha({required this.totalQuestoes, required this.quantidadeAlternativas});
+  GeometriaFolha({
+    required this.totalQuestoes,
+    required this.quantidadeAlternativas,
+  });
 
   final int totalQuestoes;
   final int quantidadeAlternativas;
@@ -37,12 +44,16 @@ class GeometriaFolha {
   static const altura = 560.0;
 
   /// Distância horizontal entre os centros dos marcadores (proporção 2:3).
-  static const largura = altura * LayoutFolhaOmr.largura / LayoutFolhaOmr.altura;
+  static const largura =
+      altura * LayoutFolhaOmr.largura / LayoutFolhaOmr.altura;
 
   static const _escala = altura / LayoutFolhaOmr.altura;
 
   /// Caixa de marcação em pontos do PDF.
-  ({double x, double y, double largura, double altura}) caixa(int questao, int alternativa) {
+  ({double x, double y, double largura, double altura}) caixa(
+    int questao,
+    int alternativa,
+  ) {
     final c = LayoutFolhaOmr.caixa(
       questao: questao,
       alternativa: alternativa,
@@ -66,39 +77,124 @@ class ProvaPdf {
   ProvaPdf._();
 
   static Future<pw.ThemeData> _tema() async {
-    // Roboto cobre acentos e símbolos que a Helvetica padrão do PDF não tem.
-    // Sem internet, cai na fonte padrão (acentos do português funcionam).
-    try {
-      final fontes = await Future.wait([
-        PdfGoogleFonts.robotoRegular(),
-        PdfGoogleFonts.robotoBold(),
-      ]).timeout(const Duration(seconds: 10));
-      return pw.ThemeData.withFont(base: fontes[0], bold: fontes[1]);
-    } catch (_) {
-      return pw.ThemeData.base();
-    }
+    final fonteRegular = pw.Font.ttf(
+      await rootBundle.load('assets/fonts/DejaVuSans.ttf'),
+    );
+
+    final fonteNegrito = pw.Font.ttf(
+      await rootBundle.load('assets/fonts/DejaVuSans-Bold.ttf'),
+    );
+
+    return pw.ThemeData.withFont(base: fonteRegular, bold: fonteNegrito);
   }
 
   /// Todas as provas da turma: uma por aluno, cada uma com sua folha de
   /// respostas. Sem gabarito (o gabarito fica só no app).
-  static Future<Uint8List> todasAsProvas(Prova prova, List<VersaoProva> versoes) async {
+  static Future<Uint8List> todasAsProvas(
+    Prova prova,
+    List<VersaoProva> versoes, {
+    LayoutProvaPdf layout = const LayoutProvaPdf(),
+  }) async {
     final tema = await _tema();
     final doc = pw.Document(title: prova.titulo, author: 'Gabarito Plus');
     for (final versao in versoes) {
-      _adicionarProva(doc, tema, prova, versao);
+      _adicionarProva(doc, tema, prova, versao, layout);
     }
     return doc.save();
   }
 
   /// Prova e folha de respostas de um único aluno. Sem a página de
   /// gabarito: este PDF pode ir para a mão do aluno.
-  static Future<Uint8List> provaDoAluno(Prova prova, VersaoProva versao) async {
+  static Future<Uint8List> provaDoAluno(
+    Prova prova,
+    VersaoProva versao, {
+    LayoutProvaPdf layout = const LayoutProvaPdf(),
+  }) async {
     final tema = await _tema();
     final doc = pw.Document(
       title: '${prova.titulo} - ${versao.aluno.nome}',
       author: 'Gabarito Plus',
     );
-    _adicionarProva(doc, tema, prova, versao);
+    _adicionarProva(doc, tema, prova, versao, layout);
+    return doc.save();
+  }
+
+  /// Gabarito do professor em PDF separado. Não contém folha OMR nem QR Code.
+  /// Cada versão apresenta as respostas na ordem em que foram embaralhadas.
+  static Future<Uint8List> gabaritoDoProfessor(
+    Prova prova,
+    List<VersaoProva> versoes,
+  ) async {
+    final tema = await _tema();
+    final doc = pw.Document(
+      title: 'Gabarito - ${prova.titulo}',
+      author: 'Gabarito Plus',
+    );
+
+    for (final versao in versoes) {
+      doc.addPage(
+        pw.MultiPage(
+          theme: tema,
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(36),
+          build: (context) => [
+            pw.Text(
+              'GABARITO DO PROFESSOR',
+              style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(height: 8),
+            pw.Text(prova.titulo),
+            pw.Text('Turma: ${prova.turma.nomeTurma}'),
+            pw.Text('Código da versão: ${versao.codigo}'),
+            pw.SizedBox(height: 16),
+            pw.Table(
+              border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+              columnWidths: {
+                0: const pw.FixedColumnWidth(65),
+                1: const pw.FlexColumnWidth(),
+              },
+              children: [
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                  children: [
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(
+                        'Questão',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(8),
+                      child: pw.Text(
+                        'Resposta correta',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                for (var i = 0; i < versao.questoes.length; i++)
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text('${i + 1}'),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(8),
+                        child: pw.Text(
+                          _letra(versao.questoes[i].respostaCorreta),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
     return doc.save();
   }
 
@@ -109,6 +205,7 @@ class ProvaPdf {
     pw.ThemeData tema,
     Prova prova,
     VersaoProva versao,
+    LayoutProvaPdf layout,
   ) {
     doc.addPage(
       pw.MultiPage(
@@ -129,15 +226,19 @@ class ProvaPdf {
           ],
         ),
         build: (context) => [
-          _cabecalhoProva(prova, versao),
+          _cabecalhoProva(prova, versao, layout),
           pw.SizedBox(height: 8),
           pw.Text(
-            'Marque suas respostas na FOLHA DE RESPOSTAS (página seguinte às questões).',
-            style: pw.TextStyle(fontSize: 9, fontStyle: pw.FontStyle.italic),
+            [
+              'Marque suas respostas na FOLHA DE RESPOSTAS (página seguinte às questões).',
+              if (layout.instrucoesEfetivas.isNotEmpty)
+                layout.instrucoesEfetivas,
+            ].join('\n'),
+            style: pw.TextStyle(fontSize: layout.fonteEfetiva - 1),
           ),
           pw.SizedBox(height: 6),
           for (var i = 0; i < versao.questoes.length; i++)
-            ..._questao(i + 1, versao.questoes[i]),
+            ..._questao(i + 1, versao.questoes[i], layout),
         ],
       ),
     );
@@ -145,21 +246,25 @@ class ProvaPdf {
     doc.addPage(_folhaDeRespostas(tema, prova, versao));
   }
 
-  static pw.Widget _cabecalhoProva(Prova prova, VersaoProva versao) {
+  static pw.Widget _cabecalhoProva(
+    Prova prova,
+    VersaoProva versao,
+    LayoutProvaPdf layout,
+  ) {
     pw.Widget campo(String rotulo, String valor, {int flex = 1}) => pw.Expanded(
-          flex: flex,
-          child: pw.RichText(
-            text: pw.TextSpan(
-              children: [
-                pw.TextSpan(
-                  text: '$rotulo: ',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
-                ),
-                pw.TextSpan(text: valor, style: const pw.TextStyle(fontSize: 10)),
-              ],
+      flex: flex,
+      child: pw.RichText(
+        text: pw.TextSpan(
+          children: [
+            pw.TextSpan(
+              text: '$rotulo: ',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
             ),
-          ),
-        );
+            pw.TextSpan(text: valor, style: const pw.TextStyle(fontSize: 10)),
+          ],
+        ),
+      ),
+    );
 
     return pw.Container(
       padding: const pw.EdgeInsets.all(10),
@@ -170,43 +275,76 @@ class ProvaPdf {
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
+          if (layout.instituicaoEfetiva.isNotEmpty)
+            pw.Center(
+              child: pw.Text(
+                layout.instituicaoEfetiva,
+                style: pw.TextStyle(
+                  fontSize: layout.fonteEfetiva,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+            ),
           pw.Text(
             prova.titulo,
-            style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold),
+            style: pw.TextStyle(
+              fontSize: layout.fonteEfetiva,
+              fontWeight: pw.FontWeight.bold,
+            ),
           ),
           pw.SizedBox(height: 6),
-          pw.Row(children: [
-            campo('Disciplina', prova.nomeDisciplina.isEmpty ? '—' : prova.nomeDisciplina),
-            campo('Assunto', prova.assunto.nome),
-          ]),
+          pw.Row(
+            children: [
+              campo(
+                'Disciplina',
+                prova.nomeDisciplina.isEmpty ? '—' : prova.nomeDisciplina,
+              ),
+              campo('Assunto', prova.assunto.nome),
+            ],
+          ),
           pw.SizedBox(height: 3),
-          pw.Row(children: [
-            campo('Turma', prova.turma.nomeTurma),
-            campo('Código', versao.codigo),
-          ]),
+          pw.Row(
+            children: [
+              campo('Turma', prova.turma.nomeTurma),
+              campo('Código', versao.codigo),
+            ],
+          ),
           pw.SizedBox(height: 3),
           pw.Row(children: [campo('Aluno', versao.aluno.nome)]),
-          pw.SizedBox(height: 3),
-          pw.Row(children: [
-            campo('Data', '____/____/________'),
-            campo('Nota', '__________'),
-          ]),
+          if (layout.exibirData || layout.exibirNota) ...[
+            pw.SizedBox(height: 3),
+            pw.Row(
+              children: [
+                if (layout.exibirData) campo('Data', '____/____/________'),
+                if (layout.exibirData && layout.exibirNota)
+                  pw.SizedBox(width: 12),
+                if (layout.exibirNota) campo('Nota', '__________'),
+              ],
+            ),
+          ],
         ],
       ),
     );
   }
 
-  static List<pw.Widget> _questao(int numero, QuestaoEmbaralhada questao) {
+  static List<pw.Widget> _questao(
+    int numero,
+    QuestaoEmbaralhada questao,
+    LayoutProvaPdf layout,
+  ) {
     final enunciado = pw.RichText(
       text: pw.TextSpan(
         children: [
           pw.TextSpan(
             text: '$numero. ',
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10.5),
+            style: pw.TextStyle(
+              fontWeight: pw.FontWeight.bold,
+              fontSize: layout.fonteEfetiva,
+            ),
           ),
           pw.TextSpan(
             text: questao.questao.enunciado,
-            style: const pw.TextStyle(fontSize: 10.5),
+            style: pw.TextStyle(fontSize: layout.fonteEfetiva),
           ),
         ],
       ),
@@ -218,14 +356,36 @@ class ProvaPdf {
           padding: const pw.EdgeInsets.only(left: 14, top: 2),
           child: pw.Text(
             '${_letra(i)}) ${questao.alternativas[i]}',
-            style: const pw.TextStyle(fontSize: 10),
+            style: pw.TextStyle(fontSize: layout.fonteAlternativaEfetiva),
           ),
         ),
     ];
 
+    final espacos = <pw.Widget>[];
+    if (layout.tipoEspaco != TipoEspacoQuestao.nenhum) {
+      for (var i = 0; i < layout.espacoEfetivo; i++) {
+        espacos.add(
+          pw.Container(
+            height: layout.alturaLinha,
+            decoration: layout.tipoEspaco == TipoEspacoQuestao.linhasCalculo
+                ? const pw.BoxDecoration(
+                    border: pw.Border(
+                      bottom: pw.BorderSide(
+                        color: PdfColors.grey400,
+                        width: 0.5,
+                      ),
+                    ),
+                  )
+                : null,
+          ),
+        );
+      }
+    }
+
     // Mantém a questão inteira na mesma página; questões muito longas vão
     // em partes para não estourar a página.
-    final tamanho = questao.questao.enunciado.length +
+    final tamanho =
+        questao.questao.enunciado.length +
         questao.alternativas.fold<int>(0, (t, a) => t + a.length);
     if (tamanho > 1500) {
       return [
@@ -233,6 +393,7 @@ class ProvaPdf {
         enunciado,
         pw.SizedBox(height: 3),
         ...alternativas,
+        ...espacos,
       ];
     }
     return [
@@ -240,7 +401,12 @@ class ProvaPdf {
         padding: const pw.EdgeInsets.only(top: 10),
         child: pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [enunciado, pw.SizedBox(height: 3), ...alternativas],
+          children: [
+            enunciado,
+            pw.SizedBox(height: 3),
+            ...alternativas,
+            ...espacos,
+          ],
         ),
       ),
     ];
@@ -252,7 +418,11 @@ class ProvaPdf {
   /// - os 4 quadrados pretos são os elementos mais nos cantos da folha;
   /// - nada de molduras em volta da grade (o leitor só vê contornos
   ///   externos, e uma moldura esconderia os marcadores).
-  static pw.Page _folhaDeRespostas(pw.ThemeData tema, Prova prova, VersaoProva versao) {
+  static pw.Page _folhaDeRespostas(
+    pw.ThemeData tema,
+    Prova prova,
+    VersaoProva versao,
+  ) {
     final totalQuestoes = versao.questoes.length;
     final alternativas = quantidadeAlternativasDaVersao(versao);
     final g = GeometriaFolha(
@@ -263,10 +433,10 @@ class ProvaPdf {
     const meio = m / 2;
 
     pw.Widget marcador(double left, double top) => pw.Positioned(
-          left: left,
-          top: top,
-          child: pw.Container(width: m, height: m, color: PdfColors.black),
-        );
+      left: left,
+      top: top,
+      child: pw.Container(width: m, height: m, color: PdfColors.black),
+    );
 
     final celulas = <pw.Widget>[];
     for (var q = 0; q < totalQuestoes; q++) {
@@ -284,7 +454,10 @@ class ProvaPdf {
               alignment: pw.Alignment.centerRight,
               child: pw.Text(
                 '${q + 1}',
-                style: pw.TextStyle(fontSize: fonte, fontWeight: pw.FontWeight.bold),
+                style: pw.TextStyle(
+                  fontSize: fonte,
+                  fontWeight: pw.FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -310,7 +483,10 @@ class ProvaPdf {
               ),
               child: pw.Text(
                 _letra(a),
-                style: pw.TextStyle(fontSize: fonte * 0.8, color: PdfColors.grey400),
+                style: pw.TextStyle(
+                  fontSize: fonte * 0.8,
+                  color: PdfColors.grey400,
+                ),
               ),
             ),
           ),
@@ -340,7 +516,7 @@ class ProvaPdf {
           ),
           pw.SizedBox(height: 8),
           pw.BarcodeWidget(
-            barcode: pw.Barcode.qrCode(),
+            barcode: Barcode.qrCode(),
             data: versao.codigo,
             width: 64,
             height: 64,

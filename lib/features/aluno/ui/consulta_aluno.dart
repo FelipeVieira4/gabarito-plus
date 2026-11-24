@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gabarito_plus/widgets/menu_opcoes.dart';
 import 'package:gabarito_plus/features/aluno/data/aluno.dart';
 import 'package:gabarito_plus/features/aluno/service/aluno_service.dart';
 import 'package:gabarito_plus/features/aluno/ui/cadastro_aluno.dart';
@@ -21,6 +22,31 @@ class _ConsultaAlunoState extends State<ConsultaAluno> {
   void dispose() {
     _buscaController.dispose();
     super.dispose();
+  }
+
+  Future<void> _excluirAluno(Aluno aluno) async {
+    final ok = await confirmarExclusao(
+      context,
+      titulo: 'Excluir aluno',
+      mensagem: 'Deseja excluir "${aluno.nome}"?',
+    );
+    if (!ok) return;
+
+    try {
+      await _alunoService.excluir(aluno.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Aluno excluído!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao excluir aluno: $e')),
+      );
+    }
   }
 
   @override
@@ -166,10 +192,9 @@ class _ConsultaAlunoState extends State<ConsultaAluno> {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        trailing: IconButton(
-          icon: const Icon(Icons.edit),
-          tooltip: 'Editar Aluno',
-          onPressed: () {
+        trailing: MenuOpcoes(
+          tooltip: 'Opções do aluno',
+          onEditar: () {
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -178,6 +203,7 @@ class _ConsultaAlunoState extends State<ConsultaAluno> {
               ),
             );
           },
+          onExcluir: () => _excluirAluno(aluno),
         ),
       ),
     );
