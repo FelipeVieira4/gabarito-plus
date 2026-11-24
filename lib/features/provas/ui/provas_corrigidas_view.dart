@@ -176,7 +176,7 @@ class _ProvasCorrigidasViewState extends State<ProvasCorrigidasView> {
                     : ListView.separated(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                         itemCount: exibidas.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 10),
+                        separatorBuilder: (context, index) => const SizedBox(height: 10),
                         itemBuilder: (context, index) {
                           final item = exibidas[index];
                           return CardProva(

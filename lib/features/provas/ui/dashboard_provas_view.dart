@@ -143,10 +143,10 @@ class _DashboardProvasViewState extends State<DashboardProvasView> {
                   return GridView.count(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 3,
-                    crossAxisSpacing: largo ? 16 : 8,
+                    crossAxisCount: largo ? 3 : 2,
+                    crossAxisSpacing: largo ? 16 : 12,
                     mainAxisSpacing: 16,
-                    childAspectRatio: largo ? 1.4 : 0.85,
+                    childAspectRatio: largo ? 1.4 : 1.2,
                     children: [
                       _cardMenu(
                         'Consulta de Provas',

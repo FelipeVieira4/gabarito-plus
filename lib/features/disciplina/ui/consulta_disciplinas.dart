@@ -380,7 +380,7 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
                         )
                       : ListView.separated(
                           itemCount: disciplinas.length,
-                          separatorBuilder: (_, _) =>
+                          separatorBuilder: (context, index) =>
                               const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             final disciplina = disciplinas[index];

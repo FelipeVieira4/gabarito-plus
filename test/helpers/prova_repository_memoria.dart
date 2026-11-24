@@ -42,4 +42,13 @@ class ProvaRepositoryMemoria implements ProvaRepository {
     versoes.sort((a, b) => a.codigo.compareTo(b.codigo));
     return versoes;
   }
+
+  @override
+  Future<List<String>> buscarOrdemQuestoes(String provaId) async {
+    final provaData = _provas[provaId];
+    if (provaData == null) return [];
+
+    final questoesIds = provaData['questoesIds'] as List<dynamic>?;
+    return questoesIds?.cast<String>() ?? [];
+  }
 }

@@ -1,6 +1,7 @@
 import 'package:gabarito_plus/features/geracao_prova/data/correcao.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/estatistica_prova.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/gabarito_lido.dart';
+import 'package:gabarito_plus/features/provas/data/versao_prova.dart';
 
 
 class CorrecaoService {
@@ -164,6 +165,90 @@ class CorrecaoService {
     return enunciados[numeroQuestao - 1];
   }
 
+  List<EstatisticaQuestaoOriginal> estatisticasPorQuestaoOriginal(
+    List<Correcao> correcoes,
+    List<VersaoProva> versoes, {
+    List<String> ordemQuestoesIds = const [],
+  }) {
+    if (correcoes.isEmpty || versoes.isEmpty) return [];
+
+    // Mapa de código → versão (para lookup rápido)
+    final versoesPorCodigo = {for (final v in versoes) v.codigo: v};
+
+    // Passo 1: Construir referência (primeira ocorrência de cada questão ID)
+    final referencia = <String, QuestaoEmbaralhada>{};
+    for (final versao in versoes) {
+      for (final qe in versao.questoes) {
+        referencia.putIfAbsent(qe.questao.id, () => qe);
+      }
+    }
+
+    if (referencia.isEmpty) return [];
+
+    // Passo 2: Tabular marcações
+    final tabelasPorId = <String, _TabelaQuestao>{};
+    for (final questaoId in referencia.keys) {
+      final qe = referencia[questaoId]!;
+      tabelasPorId[questaoId] = _TabelaQuestao(
+        questaoId: questaoId,
+        enunciado: qe.questao.enunciado,
+        alternativas: qe.alternativas,
+        indiceCorreta: qe.respostaCorreta,
+        marcacoesPorAlternativa: List.filled(qe.alternativas.length, 0),
+        emBranco: 0,
+      );
+    }
+
+    // Tabular respostas
+    for (final correcao in correcoes) {
+      final versao = versoesPorCodigo[correcao.codigoVersao];
+      if (versao == null) continue;
+
+      for (final resposta in correcao.respostas) {
+        final indiceQuestao = resposta.numeroQuestao - 1;
+        if (indiceQuestao < 0 || indiceQuestao >= versao.questoes.length) {
+          continue;
+        }
+
+        final qe = versao.questoes[indiceQuestao];
+        final tabela = tabelasPorId[qe.questao.id];
+        if (tabela == null) continue;
+
+        if (resposta.indiceMarcado == null) {
+          tabela.emBranco++;
+        } else {
+          final textoMarcado = qe.alternativas[resposta.indiceMarcado!];
+          final indiceEmReferencia = tabela.alternativas.indexOf(textoMarcado);
+          if (indiceEmReferencia >= 0) {
+            tabela.marcacoesPorAlternativa[indiceEmReferencia]++;
+          }
+        }
+      }
+    }
+
+    // Passo 3: Montar resultado em ordem
+    final idsOrdenados = [
+      ...ordemQuestoesIds.where(referencia.containsKey),
+      ...referencia.keys.where((id) => !ordemQuestoesIds.contains(id)),
+    ];
+
+    return idsOrdenados.asMap().entries.map((entry) {
+      final numero = entry.key + 1;
+      final questaoId = entry.value;
+      final tabela = tabelasPorId[questaoId]!;
+
+      return EstatisticaQuestaoOriginal(
+        numero: numero,
+        questaoId: questaoId,
+        enunciado: tabela.enunciado,
+        alternativas: tabela.alternativas,
+        indiceCorreta: tabela.indiceCorreta,
+        marcacoesPorAlternativa: tabela.marcacoesPorAlternativa,
+        emBranco: tabela.emBranco,
+      );
+    }).toList();
+  }
+
   List<FaixaNota> _montarDistribuicao(List<double> notas) {
     const limites = [
       [0.0, 2.0],
@@ -191,4 +276,22 @@ class CorrecaoService {
       );
     }).toList();
   }
+}
+
+class _TabelaQuestao {
+  final String questaoId;
+  final String enunciado;
+  final List<String> alternativas;
+  final int indiceCorreta;
+  final List<int> marcacoesPorAlternativa;
+  int emBranco;
+
+  _TabelaQuestao({
+    required this.questaoId,
+    required this.enunciado,
+    required this.alternativas,
+    required this.indiceCorreta,
+    required this.marcacoesPorAlternativa,
+    required this.emBranco,
+  });
 }

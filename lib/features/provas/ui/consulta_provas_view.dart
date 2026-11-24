@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gabarito_plus/features/correcao_prova/ui/consulta_provas_corrigidas.dart';
 import 'package:gabarito_plus/features/correcao_prova/ui/detalhes_prova_corrigida_view.dart';
 import 'package:gabarito_plus/features/disciplina/data/assunto.dart';
 import 'package:gabarito_plus/features/provas/data/desempenho.dart';
@@ -105,7 +106,7 @@ class _ConsultaProvasViewState extends State<ConsultaProvasView> {
                     : ListView.separated(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                         itemCount: provas.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 10),
+                        separatorBuilder: (context, index) => const SizedBox(height: 10),
                         itemBuilder: (context, index) {
                           final prova = provas[index];
                           final notas = analise.notasDaProva(prova.id);
@@ -339,6 +340,23 @@ class DetalheProvaView extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(prova.titulo.isEmpty ? 'Prova ${prova.id}' : prova.titulo),
+        actions: [
+          if (notas.isNotEmpty)
+            IconButton(
+              tooltip: 'Ver alternativas mais marcadas',
+              icon: const Icon(Icons.analytics_outlined),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ConsultaProvasCorrigidasView(
+                    provaId: prova.id,
+                    titulo: prova.titulo.isEmpty ? 'Prova ${prova.id}' : prova.titulo,
+                    notaCorte: notaCorteDesempenho,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _exportarPdf(context),

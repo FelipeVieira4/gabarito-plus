@@ -169,7 +169,7 @@ class _LeitorFolhaCameraState extends State<LeitorFolhaCamera> with WidgetsBindi
               Positioned(
                 left: 24,
                 right: 24,
-                top: janela.bottom + 20,
+                top: janela.top - 60,
                 child: Text(
                   widget.instrucao,
                   textAlign: TextAlign.center,
@@ -183,7 +183,7 @@ class _LeitorFolhaCameraState extends State<LeitorFolhaCamera> with WidgetsBindi
                 child: Center(
                   child: FloatingActionButton.extended(
                     onPressed: _processando ? null : _capturar,
-                    icon: _processando 
+                    icon: _processando
                       ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const Icon(Icons.camera_alt),
                     label: Text(_processando ? 'Processando...' : 'Capturar e ler folha'),
