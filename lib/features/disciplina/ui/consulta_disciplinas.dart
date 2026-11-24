@@ -1,35 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:gabarito_plus/widgets/menu_opcoes.dart';
 import 'package:gabarito_plus/features/disciplina/data/assunto.dart';
 import 'package:gabarito_plus/features/disciplina/data/disciplina.dart';
 import 'package:gabarito_plus/features/disciplina/service/disciplinas_service.dart';
-
+ 
 class ConsultaDisciplinasView extends StatefulWidget {
   const ConsultaDisciplinasView({super.key});
-
+ 
   @override
   State<ConsultaDisciplinasView> createState() =>
       _ConsultaDisciplinasViewState();
 }
-
+ 
 class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
   final _service = DisciplinasService();
   final _buscaController = TextEditingController();
   String? _disciplinaExpandidaId;
   List<Disciplina> _disciplinas = [];
   bool _carregando = true;
-
+ 
   @override
   void initState() {
     super.initState();
     _carregarDisciplinas();
   }
-
+ 
   @override
   void dispose() {
     _buscaController.dispose();
     super.dispose();
   }
-
+ 
   Future<void> _carregarDisciplinas() async {
     try {
       final disciplinas = await _service.listarDisciplinas();
@@ -46,12 +47,12 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
       );
     }
   }
-
+ 
   List<Disciplina> get _disciplinasFiltradas {
     final todas = _disciplinas;
     final termo = _buscaController.text.trim().toLowerCase();
     if (termo.isEmpty) return todas;
-
+ 
     return todas.where((d) {
       final bateDisciplina = d.descricao.toLowerCase().contains(termo);
       final bateAssunto =
@@ -59,42 +60,17 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
       return bateDisciplina || bateAssunto;
     }).toList();
   }
-
+ 
   // ---------------------------------------------------------------------------
   // Utilitários
   // ---------------------------------------------------------------------------
-
+ 
   void _mensagem(String texto, {Color? cor}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(texto), backgroundColor: cor),
     );
   }
-
-  Future<bool> _confirmar({
-    required String titulo,
-    required String mensagem,
-  }) async {
-    final resultado = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(titulo),
-        content: Text(mensagem),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Excluir'),
-          ),
-        ],
-      ),
-    );
-    return resultado ?? false;
-  }
-
+ 
   Future<String?> _abrirModal(WidgetBuilder builder) {
     return showModalBottomSheet<String>(
       context: context,
@@ -105,11 +81,11 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
       builder: builder,
     );
   }
-
+ 
   // ---------------------------------------------------------------------------
   // Cadastro
   // ---------------------------------------------------------------------------
-
+ 
   void _exibirOpcoesCadastro() {
     showModalBottomSheet(
       context: context,
@@ -190,32 +166,32 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
       },
     );
   }
-
+ 
   Future<void> _exibirModalNovaDisciplina() async {
     final disciplinaIdCriada =
         await _abrirModal((_) => const ModalCadastroDisciplina());
-
+ 
     if (disciplinaIdCriada != null) {
       _disciplinaExpandidaId = disciplinaIdCriada;
       await _carregarDisciplinas();
     }
   }
-
+ 
   Future<void> _exibirModalNovoAssunto() async {
     final disciplinaIdAtualizada = await _abrirModal(
       (_) => ModalCadastroAssunto(disciplinas: _disciplinas),
     );
-
+ 
     if (disciplinaIdAtualizada != null) {
       _disciplinaExpandidaId = disciplinaIdAtualizada;
       await _carregarDisciplinas();
     }
   }
-
+ 
   // ---------------------------------------------------------------------------
   // Manutenção: disciplina
   // ---------------------------------------------------------------------------
-
+ 
   Future<void> _editarDisciplina(Disciplina disciplina) async {
     final id = await _abrirModal(
       (_) => ModalCadastroDisciplina(disciplina: disciplina),
@@ -225,7 +201,7 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
       await _carregarDisciplinas();
     }
   }
-
+ 
   Future<void> _excluirDisciplina(Disciplina disciplina) async {
     if (disciplina.assuntos.isNotEmpty) {
       _mensagem(
@@ -235,12 +211,13 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
       );
       return;
     }
-    final ok = await _confirmar(
+    final ok = await confirmarExclusao(
+      context,
       titulo: 'Excluir disciplina',
       mensagem: 'Deseja excluir "${disciplina.descricao}"?',
     );
     if (!ok) return;
-
+ 
     try {
       await _service.excluirDisciplina(disciplina.id);
       if (!mounted) return;
@@ -251,11 +228,11 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
       _mensagem('Erro ao excluir disciplina: $e');
     }
   }
-
+ 
   // ---------------------------------------------------------------------------
   // Manutenção: assunto
   // ---------------------------------------------------------------------------
-
+ 
   Future<void> _editarAssunto(Disciplina disciplina, Assunto assunto) async {
     final id = await _abrirModal(
       (_) => ModalCadastroAssunto(
@@ -269,7 +246,7 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
       await _carregarDisciplinas();
     }
   }
-
+ 
   Future<void> _excluirAssunto(Disciplina disciplina, Assunto assunto) async {
     if (assunto.questoes.isNotEmpty) {
       _mensagem(
@@ -279,12 +256,13 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
       );
       return;
     }
-    final ok = await _confirmar(
+    final ok = await confirmarExclusao(
+      context,
       titulo: 'Excluir assunto',
       mensagem: 'Deseja excluir "${assunto.nome}"?',
     );
     if (!ok) return;
-
+ 
     try {
       await _service.excluirAssunto(assunto.id);
       if (!mounted) return;
@@ -296,47 +274,15 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
       _mensagem('Erro ao excluir assunto: $e');
     }
   }
-
-  Widget _menuOpcoes({
-    required String tooltip,
-    required VoidCallback onEditar,
-    required VoidCallback onExcluir,
-  }) {
-    return PopupMenuButton<String>(
-      tooltip: tooltip,
-      onSelected: (valor) {
-        if (valor == 'editar') onEditar();
-        if (valor == 'excluir') onExcluir();
-      },
-      itemBuilder: (_) => const [
-        PopupMenuItem(
-          value: 'editar',
-          child: ListTile(
-            leading: Icon(Icons.edit),
-            title: Text('Editar'),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-        PopupMenuItem(
-          value: 'excluir',
-          child: ListTile(
-            leading: Icon(Icons.delete, color: Colors.red),
-            title: Text('Excluir'),
-            contentPadding: EdgeInsets.zero,
-          ),
-        ),
-      ],
-    );
-  }
-
+ 
   // ---------------------------------------------------------------------------
   // Build
   // ---------------------------------------------------------------------------
-
+ 
   @override
   Widget build(BuildContext context) {
     final disciplinas = _disciplinasFiltradas;
-
+ 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Disciplinas & Assuntos'),
@@ -367,7 +313,7 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 16),
-
+ 
             // Lista de Disciplinas e Assuntos
             Expanded(
               child: _carregando
@@ -386,7 +332,7 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
                             final disciplina = disciplinas[index];
                             final isExpandida =
                                 disciplina.id == _disciplinaExpandidaId;
-
+ 
                             return Card(
                               elevation: 2,
                               shape: RoundedRectangleBorder(
@@ -419,7 +365,7 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    _menuOpcoes(
+                                    MenuOpcoes(
                                       tooltip: 'Opções da disciplina',
                                       onEditar: () =>
                                           _editarDisciplina(disciplina),
@@ -454,7 +400,7 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
                                           subtitle: Text(
                                             '${assunto.questoes.length} questão(ões)',
                                           ),
-                                          trailing: _menuOpcoes(
+                                          trailing: MenuOpcoes(
                                             tooltip: 'Opções do assunto',
                                             onEditar: () => _editarAssunto(
                                               disciplina,
@@ -483,58 +429,58 @@ class _ConsultaDisciplinasViewState extends State<ConsultaDisciplinasView> {
     );
   }
 }
-
+ 
 // =============================================================================
 // Modal: cadastro / edição de disciplina
 // =============================================================================
-
+ 
 class ModalCadastroDisciplina extends StatefulWidget {
   final VoidCallback? onSalvo;
-
+ 
   /// null = cadastro; preenchida = edição.
   final Disciplina? disciplina;
-
+ 
   const ModalCadastroDisciplina({super.key, this.onSalvo, this.disciplina});
-
+ 
   @override
   State<ModalCadastroDisciplina> createState() =>
       _ModalCadastroDisciplinaState();
 }
-
+ 
 class _ModalCadastroDisciplinaState extends State<ModalCadastroDisciplina> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nomeController;
   final _service = DisciplinasService();
   bool _salvando = false;
-
+ 
   bool get _editando => widget.disciplina != null;
-
+ 
   @override
   void initState() {
     super.initState();
     _nomeController =
         TextEditingController(text: widget.disciplina?.descricao ?? '');
   }
-
+ 
   @override
   void dispose() {
     _nomeController.dispose();
     super.dispose();
   }
-
+ 
   Future<void> _salvar() async {
     if (!_formKey.currentState!.validate()) return;
-
+ 
     final nomeDisciplina = _nomeController.text.trim();
     setState(() => _salvando = true);
-
+ 
     try {
       final jaExiste = await _service.existeDisciplina(
         nomeDisciplina,
         ignorarId: widget.disciplina?.id,
       );
       if (!mounted) return;
-
+ 
       if (jaExiste) {
         setState(() => _salvando = false);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -545,7 +491,7 @@ class _ModalCadastroDisciplinaState extends State<ModalCadastroDisciplina> {
         );
         return;
       }
-
+ 
       final String id;
       if (_editando) {
         id = widget.disciplina!.id;
@@ -554,9 +500,9 @@ class _ModalCadastroDisciplinaState extends State<ModalCadastroDisciplina> {
         id = await _service.criarDisciplina(nomeDisciplina);
       }
       if (!mounted) return;
-
+ 
       widget.onSalvo?.call();
-
+ 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -567,7 +513,7 @@ class _ModalCadastroDisciplinaState extends State<ModalCadastroDisciplina> {
           backgroundColor: Colors.green,
         ),
       );
-
+ 
       Navigator.pop(context, id);
     } catch (e) {
       if (!mounted) return;
@@ -577,7 +523,7 @@ class _ModalCadastroDisciplinaState extends State<ModalCadastroDisciplina> {
       );
     }
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -653,21 +599,21 @@ class _ModalCadastroDisciplinaState extends State<ModalCadastroDisciplina> {
     );
   }
 }
-
+ 
 // =============================================================================
 // Modal: cadastro / edição de assunto
 // =============================================================================
-
+ 
 class ModalCadastroAssunto extends StatefulWidget {
   final List<Disciplina> disciplinas;
   final VoidCallback? onSalvo;
-
+ 
   /// null = cadastro; preenchido = edição.
   final Assunto? assunto;
-
+ 
   /// Disciplina atual do assunto (usada na edição).
   final String? disciplinaInicialId;
-
+ 
   const ModalCadastroAssunto({
     super.key,
     required this.disciplinas,
@@ -675,20 +621,20 @@ class ModalCadastroAssunto extends StatefulWidget {
     this.assunto,
     this.disciplinaInicialId,
   });
-
+ 
   @override
   State<ModalCadastroAssunto> createState() => _ModalCadastroAssuntoState();
 }
-
+ 
 class _ModalCadastroAssuntoState extends State<ModalCadastroAssunto> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nomeController;
   final _service = DisciplinasService();
   Disciplina? _disciplinaSelecionada;
   bool _salvando = false;
-
+ 
   bool get _editando => widget.assunto != null;
-
+ 
   @override
   void initState() {
     super.initState();
@@ -702,20 +648,20 @@ class _ModalCadastroAssuntoState extends State<ModalCadastroAssunto> {
       }
     }
   }
-
+ 
   @override
   void dispose() {
     _nomeController.dispose();
     super.dispose();
   }
-
+ 
   Future<void> _salvar() async {
     if (!_formKey.currentState!.validate()) return;
-
+ 
     final disciplina = _disciplinaSelecionada!;
     final nomeAssunto = _nomeController.text.trim();
     setState(() => _salvando = true);
-
+ 
     try {
       if (_editando) {
         await _service.atualizarAssunto(
@@ -730,9 +676,9 @@ class _ModalCadastroAssuntoState extends State<ModalCadastroAssunto> {
         );
       }
       if (!mounted) return;
-
+ 
       widget.onSalvo?.call();
-
+ 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -752,7 +698,7 @@ class _ModalCadastroAssuntoState extends State<ModalCadastroAssunto> {
       );
     }
   }
-
+ 
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -854,3 +800,4 @@ class _ModalCadastroAssuntoState extends State<ModalCadastroAssunto> {
     );
   }
 }
+ 
