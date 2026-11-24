@@ -99,7 +99,8 @@ class QuestoesService {
     return doc.id;
   }
 
-  Future<void> excluirQuestao(String id) async {
+  /*Future<void> excluirQuestao(String id) async {
     await FirebaseFirestore.instance.collection('questoes').doc(id).delete();
-  }
+  }*/
+  Future<void> excluirQuestao(String id) => _questoes.doc(id).delete();
 }
