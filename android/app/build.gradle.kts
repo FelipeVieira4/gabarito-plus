@@ -41,6 +41,10 @@ android {
     }
 }
 
+dependencies {
+    implementation("androidx.concurrent:concurrent-futures:1.1.0")
+}
+
 kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17

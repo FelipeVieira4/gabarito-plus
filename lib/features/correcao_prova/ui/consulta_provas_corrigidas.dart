@@ -480,10 +480,13 @@ class _ConsultaProvasCorrigidasViewState
                   child: _PainelResumoTurma(resumo: resumo),
                 ),
               if (widget.provaId != null && _estatisticasQuestoes.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: _PainelAlternativasMaisMarcadas(
-                    estatisticas: _estatisticasQuestoes,
+                SizedBox(
+                  height: 300,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: _PainelAlternativasMaisMarcadas(
+                      estatisticas: _estatisticasQuestoes,
+                    ),
                   ),
                 ),
               Expanded(
@@ -963,39 +966,30 @@ class _PainelAlternativasMaisMarcadas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8.0),
-          child: Text(
-            'Alternativa mais marcada por questão',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12.0),
-          child: Text(
-            'A ordem das questões e alternativas de cada aluno é desconsiderada. '
-            'Os números seguem a ordem original de cadastro da prova.',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: Text(
+              'Alternativa mais marcada por questão',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
           ),
-        ),
-        Column(
-          children: [
-            for (final est in estatisticas)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: _CardQuestaoOriginal(estatistica: est),
-              ),
-          ],
-        ),
-      ],
+          Column(
+            children: [
+              for (final est in estatisticas)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: _CardQuestaoOriginal(estatistica: est),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
