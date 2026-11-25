@@ -5,6 +5,7 @@ import 'package:gabarito_plus/features/correcao_prova/ui/camera_correcao.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/correcao.dart';
 import 'package:gabarito_plus/features/geracao_prova/data/estatistica_prova.dart';
 import 'package:gabarito_plus/features/correcao_prova/ui/detalhes_prova_corrigida_view.dart';
+import 'package:gabarito_plus/features/provas/service/prova_repository.dart';
 
 enum OrdenacaoCorrecao {
   maiorNota('Maior nota'),
@@ -51,6 +52,7 @@ class _ConsultaProvasCorrigidasViewState
   OrdenacaoCorrecao _ordenacao = OrdenacaoCorrecao.maiorNota;
 
   List<Correcao> _correcoes = [];
+  List<EstatisticaQuestaoOriginal> _estatisticasQuestoes = [];
   bool _carregando = true;
   bool _erroAoCarregar = false;
 
@@ -84,8 +86,29 @@ class _ConsultaProvasCorrigidasViewState
             .toList();
       }
       if (!mounted) return;
+
+      // Carregar estatísticas de alternativas mais marcadas se houver provaId
+      List<EstatisticaQuestaoOriginal> estatisticas = [];
+      if (provaId != null && correcoes.isNotEmpty) {
+        try {
+          final versoes = await ProvaRepository.instancia.buscarVersoes(provaId);
+          final ordem = await ProvaRepository.instancia.buscarOrdemQuestoes(provaId);
+          if (versoes.isNotEmpty) {
+            estatisticas = _service.estatisticasPorQuestaoOriginal(
+              correcoes,
+              versoes,
+              ordemQuestoesIds: ordem,
+            );
+          }
+        } catch (_) {
+          // Falhar silenciosamente: estatísticas são complemento, não essencial
+        }
+      }
+
+      if (!mounted) return;
       setState(() {
         _correcoes = correcoes;
+        _estatisticasQuestoes = estatisticas;
         _carregando = false;
       });
     } catch (_) {
@@ -456,6 +479,16 @@ class _ConsultaProvasCorrigidasViewState
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                   child: _PainelResumoTurma(resumo: resumo),
                 ),
+              if (widget.provaId != null && _estatisticasQuestoes.isNotEmpty)
+                SizedBox(
+                  height: 300,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: _PainelAlternativasMaisMarcadas(
+                      estatisticas: _estatisticasQuestoes,
+                    ),
+                  ),
+                ),
               Expanded(
                 child: _carregando
                     ? const Center(child: CircularProgressIndicator())
@@ -469,7 +502,7 @@ class _ConsultaProvasCorrigidasViewState
                     : ListView.separated(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
                         itemCount: correcoesFiltradas.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 10),
+                        separatorBuilder: (context, index) => const SizedBox(height: 10),
                         itemBuilder: (context, index) {
                           final correcao = correcoesFiltradas[index];
                           return _CardCorrecao(
@@ -919,6 +952,276 @@ class _ErroAoCarregar extends StatelessWidget {
               icon: const Icon(Icons.refresh),
               label: const Text('Tentar novamente'),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PainelAlternativasMaisMarcadas extends StatelessWidget {
+  const _PainelAlternativasMaisMarcadas({required this.estatisticas});
+
+  final List<EstatisticaQuestaoOriginal> estatisticas;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: Text(
+              'Alternativa mais marcada por questão',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+          ),
+          Column(
+            children: [
+              for (final est in estatisticas)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: _CardQuestaoOriginal(estatistica: est),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CardQuestaoOriginal extends StatelessWidget {
+  const _CardQuestaoOriginal({required this.estatistica});
+
+  final EstatisticaQuestaoOriginal estatistica;
+
+  String _letraAlternativa(int? indice) {
+    if (indice == null) return '—';
+    return String.fromCharCode(65 + indice);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final correcta = _letraAlternativa(estatistica.indiceCorreta);
+    final maisMarcada = estatistica.indiceMaisMarcada;
+    final letraMaisMarcada = _letraAlternativa(maisMarcada);
+    final percentualMaisMarcada =
+        '${(estatistica.percentualMaisMarcada).round()}%';
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: ExpansionTile(
+        leading: CircleAvatar(
+          child: Text('${estatistica.numero}'),
+        ),
+        title: Text('Questão ${estatistica.numero}'),
+        subtitle: Wrap(
+          spacing: 16,
+          runSpacing: 4,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Correta: ',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                ),
+                Text(
+                  correcta,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green.shade700,
+                  ),
+                ),
+              ],
+            ),
+            if (maisMarcada != null)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Mais marcada: ',
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                  ),
+                  Text(
+                    letraMaisMarcada,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: maisMarcada == estatistica.indiceCorreta
+                          ? Colors.green.shade700
+                          : Colors.orange.shade800,
+                    ),
+                  ),
+                  Text(
+                    ' ($percentualMaisMarcada)',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              )
+            else
+              Text(
+                'Sem respostas marcadas',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+          ],
+        ),
+        children: [
+          SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    estatistica.enunciado,
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 12),
+                  for (var i = 0; i < estatistica.alternativas.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: _AlternativaLinha(
+                        letra: _letraAlternativa(i),
+                        texto: estatistica.alternativas[i],
+                        marcacoes: estatistica.marcacoesPorAlternativa[i],
+                        total: estatistica.totalAlunos,
+                        isCorreta: i == estatistica.indiceCorreta,
+                        isMaisMarcada: i == estatistica.indiceMaisMarcada,
+                      ),
+                    ),
+                  if (estatistica.emBranco > 0) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Em branco: ${estatistica.emBranco} '
+                      '(${(estatistica.emBranco / estatistica.totalAlunos * 100).round()}%)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AlternativaLinha extends StatelessWidget {
+  const _AlternativaLinha({
+    required this.letra,
+    required this.texto,
+    required this.marcacoes,
+    required this.total,
+    required this.isCorreta,
+    required this.isMaisMarcada,
+  });
+
+  final String letra;
+  final String texto;
+  final int marcacoes;
+  final int total;
+  final bool isCorreta;
+  final bool isMaisMarcada;
+
+  String _percentual() {
+    if (total == 0) return '0%';
+    return '${(marcacoes / total * 100).round()}%';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final percentual = _percentual();
+    Color corFundo = Colors.transparent;
+    Color corTexto = Colors.black87;
+
+    if (isCorreta) {
+      corFundo = Colors.green.shade50;
+      corTexto = Colors.green.shade700;
+    } else if (isMaisMarcada) {
+      corFundo = Colors.orange.shade50;
+      corTexto = Colors.orange.shade800;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      decoration: BoxDecoration(
+        color: corFundo,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: corFundo == Colors.transparent
+              ? Colors.grey.shade200
+              : (isCorreta ? Colors.green.shade200 : Colors.orange.shade200),
+        ),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            Text(
+              letra,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: corTexto,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(width: 8),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 150),
+              child: Text(
+                texto,
+                style: TextStyle(
+                  color: corTexto,
+                  fontSize: 12,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Chip(
+              label: Text('$marcacoes ($percentual)'),
+              visualDensity: VisualDensity.compact,
+              backgroundColor: corFundo == Colors.transparent
+                  ? Colors.grey.shade100
+                  : Colors.white,
+              labelStyle: TextStyle(
+                fontSize: 11,
+                color: corTexto,
+              ),
+            ),
+            if (isCorreta)
+              Padding(
+                padding: const EdgeInsets.only(left: 8.0),
+                child: Icon(
+                  Icons.check_circle,
+                  size: 16,
+                  color: Colors.green.shade700,
+                ),
+              ),
+            if (isMaisMarcada && !isCorreta)
+              Padding(
+                padding: const EdgeInsets.only(left: 8.0),
+                child: Icon(
+                  Icons.warning_outlined,
+                  size: 16,
+                  color: Colors.orange.shade800,
+                ),
+              ),
           ],
         ),
       ),

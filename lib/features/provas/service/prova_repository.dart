@@ -35,6 +35,9 @@ abstract class ProvaRepository {
   /// Versões (uma por aluno) de uma prova salva, em ordem de código.
   /// Usado para reimprimir a prova pela consulta.
   Future<List<VersaoProva>> buscarVersoes(String provaId);
+
+  /// Ids das questões do banco da prova, na ordem original de cadastro.
+  Future<List<String>> buscarOrdemQuestoes(String provaId);
 }
 
 class ProvaRepositoryFirestore implements ProvaRepository {
@@ -88,5 +91,16 @@ class ProvaRepositoryFirestore implements ProvaRepository {
     final versoes = snap.docs.map(VersaoProva.fromFirestore).toList();
     versoes.sort((a, b) => a.codigo.compareTo(b.codigo));
     return versoes;
+  }
+
+  @override
+  Future<List<String>> buscarOrdemQuestoes(String provaId) async {
+    final provaDoc = await _provas.doc(provaId).get();
+    if (!provaDoc.exists) return [];
+
+    final data = provaDoc.data() ?? {};
+    final questoesIds = data['questoesIds'] as List<dynamic>?;
+
+    return questoesIds?.cast<String>() ?? [];
   }
 }

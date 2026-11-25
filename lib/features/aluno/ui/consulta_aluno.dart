@@ -124,7 +124,7 @@ class _ConsultaAlunoState extends State<ConsultaAluno> {
 
                   return ListView.separated(
                     itemCount: alunos.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    separatorBuilder: (context, index) => const SizedBox(height: 8),
                     itemBuilder: (context, index) =>
                         _cardAluno(context, alunos[index]),
                   );

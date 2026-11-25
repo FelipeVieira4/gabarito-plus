@@ -271,7 +271,7 @@ class _VisualizacaoEmbaralhamentoState
             child: ListView.separated(
               padding: const EdgeInsets.all(16.0),
               itemCount: _versoes.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final versao = _versoes[index];
                 return _VersaoProvaCard(

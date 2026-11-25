@@ -103,3 +103,51 @@ class EstatisticaQuestao {
     return indice == null ? 0 : marcacoesPorAlternativa[indice];
   }
 }
+
+class EstatisticaQuestaoOriginal {
+  final int numero;
+  final String questaoId;
+  final String enunciado;
+  final List<String> alternativas;
+  final int indiceCorreta;
+  final List<int> marcacoesPorAlternativa;
+  final int emBranco;
+
+  EstatisticaQuestaoOriginal({
+    required this.numero,
+    required this.questaoId,
+    required this.enunciado,
+    required this.alternativas,
+    required this.indiceCorreta,
+    required this.marcacoesPorAlternativa,
+    required this.emBranco,
+  });
+
+  int get totalAlunos =>
+      marcacoesPorAlternativa.fold<int>(0, (soma, item) => soma + item) +
+      emBranco;
+
+  int? get indiceMaisMarcada {
+    int? indice;
+    var maior = 0;
+
+    for (var i = 0; i < marcacoesPorAlternativa.length; i++) {
+      if (marcacoesPorAlternativa[i] > maior) {
+        maior = marcacoesPorAlternativa[i];
+        indice = i;
+      }
+    }
+
+    return indice;
+  }
+
+  int get marcacoesDaMaisMarcada {
+    final indice = indiceMaisMarcada;
+    return indice == null ? 0 : marcacoesPorAlternativa[indice];
+  }
+
+  double get percentualMaisMarcada {
+    if (totalAlunos == 0) return 0;
+    return (marcacoesDaMaisMarcada / totalAlunos) * 100;
+  }
+}

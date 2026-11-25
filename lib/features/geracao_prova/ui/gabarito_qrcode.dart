@@ -126,7 +126,7 @@ class GabaritoQrCode extends StatelessWidget {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: versao.questoes.length,
-                separatorBuilder: (_, _) => const Divider(height: 1),
+                separatorBuilder: (context, index) => const Divider(height: 1),
                 itemBuilder: (context, index) {
                   final letra = String.fromCharCode(
                     65 + versao.questoes[index].respostaCorreta,

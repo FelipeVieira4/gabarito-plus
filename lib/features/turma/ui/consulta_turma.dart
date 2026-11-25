@@ -113,7 +113,7 @@ class _ConsultaTurmaState extends State<ConsultaTurma> {
 
                   return ListView.separated(
                     itemCount: turmas.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    separatorBuilder: (context, index) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final turma = turmas[index];
 
