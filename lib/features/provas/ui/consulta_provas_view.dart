@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gabarito_plus/features/correcao_prova/ui/consulta_provas_corrigidas.dart';
 import 'package:gabarito_plus/features/correcao_prova/ui/detalhes_prova_corrigida_view.dart';
 import 'package:gabarito_plus/features/disciplina/data/assunto.dart';
+import 'package:gabarito_plus/features/geracao_prova/ui/edicao_prova_view.dart';
 import 'package:gabarito_plus/features/provas/data/desempenho.dart';
 import 'package:gabarito_plus/features/provas/data/prova.dart';
 import 'package:gabarito_plus/features/provas/pdf/exportar_pdf.dart';
@@ -336,12 +337,13 @@ class DetalheProvaView extends StatelessWidget {
       });
     final aprovados = notas.where((n) => n.nota >= notaCorteDesempenho).length;
     final notasOrdenadas = notas.map((n) => n.nota).toList()..sort();
+    final totalmenteCorrigida = provaTotalmenteCorrigida(prova, notas);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(prova.titulo.isEmpty ? 'Prova ${prova.id}' : prova.titulo),
         actions: [
-          if (notas.isNotEmpty)
+          if (totalmenteCorrigida && notas.isNotEmpty)
             IconButton(
               tooltip: 'Ver alternativas mais marcadas',
               icon: const Icon(Icons.analytics_outlined),
@@ -353,6 +355,17 @@ class DetalheProvaView extends StatelessWidget {
                     titulo: prova.titulo.isEmpty ? 'Prova ${prova.id}' : prova.titulo,
                     notaCorte: notaCorteDesempenho,
                   ),
+                ),
+              ),
+            )
+          else if (!totalmenteCorrigida)
+            IconButton(
+              tooltip: 'Editar prova',
+              icon: const Icon(Icons.edit),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EdicaoProvaView(prova: prova),
                 ),
               ),
             ),
