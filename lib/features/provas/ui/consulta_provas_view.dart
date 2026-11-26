@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:gabarito_plus/features/correcao_prova/ui/consulta_provas_corrigidas.dart';
 import 'package:gabarito_plus/features/correcao_prova/ui/detalhes_prova_corrigida_view.dart';
 import 'package:gabarito_plus/features/disciplina/data/assunto.dart';
+import 'package:gabarito_plus/features/geracao_prova/ui/configuracao_prova.dart';
 import 'package:gabarito_plus/features/provas/data/desempenho.dart';
 import 'package:gabarito_plus/features/provas/data/prova.dart';
 import 'package:gabarito_plus/features/provas/pdf/exportar_pdf.dart';
@@ -292,6 +293,25 @@ class DetalheProvaView extends StatelessWidget {
   final ProvaResumo prova;
   final List<NotaLancada> notas;
 
+  /// Busca a configuração salva da prova e abre a tela de configuração em
+  /// modo edição (a [ProvaResumo] da lista não tem questões nem flags).
+  Future<void> _editarProva(BuildContext context) async {
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final salva = await ProvaRepository.instancia.buscarProva(prova.id);
+    if (salva == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Não foi possível carregar a prova.')),
+      );
+      return;
+    }
+    await navigator.push(
+      MaterialPageRoute(
+        builder: (_) => ConfiguracaoProva(provaParaEditar: salva),
+      ),
+    );
+  }
+
   /// Reimprime as provas de todos os alunos (prova + folha de respostas),
   /// a partir das versões salvas.
   Future<void> _exportarPdf(BuildContext context) async {
@@ -341,7 +361,16 @@ class DetalheProvaView extends StatelessWidget {
       appBar: AppBar(
         title: Text(prova.titulo.isEmpty ? 'Prova ${prova.id}' : prova.titulo),
         actions: [
-          if (notas.isNotEmpty)
+          // Sem correções: dá para editar. Com qualquer correção, editar
+          // regeraria as versões e invalidaria o que já foi corrigido, então
+          // só mostra as estatísticas.
+          if (notas.isEmpty)
+            IconButton(
+              tooltip: 'Editar prova',
+              icon: const Icon(Icons.edit),
+              onPressed: () => _editarProva(context),
+            )
+          else
             IconButton(
               tooltip: 'Ver alternativas mais marcadas',
               icon: const Icon(Icons.analytics_outlined),

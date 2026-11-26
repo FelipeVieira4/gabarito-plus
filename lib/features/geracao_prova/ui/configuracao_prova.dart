@@ -12,7 +12,11 @@ import 'package:gabarito_plus/features/turma/service/turma_service.dart';
 
 
 class ConfiguracaoProva extends StatefulWidget {
-  const ConfiguracaoProva({super.key});
+  const ConfiguracaoProva({super.key, this.provaParaEditar});
+
+  /// Quando presente, a tela abre em modo edição, repovoada com os dados da
+  /// prova e salvando sobre ela (mesmo código) em vez de gerar uma nova.
+  final ProvaSalva? provaParaEditar;
 
   @override
   State<ConfiguracaoProva> createState() => _ConfiguracaoProvaState();
@@ -57,6 +61,11 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
   /// Cada aluno recebe [_questoesPorProva] questões sorteadas das selecionadas.
   bool _sortearQuestoes = false;
 
+  bool get _editando => widget.provaParaEditar != null;
+
+  /// Garante que o repovoamento da edição rode uma única vez.
+  bool _edicaoPreenchida = false;
+
   int? get _questoesPorProva =>
       int.tryParse(_questoesPorProvaController.text.trim());
 
@@ -69,12 +78,16 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
 
   Future<void> _carregarTurmas() async {
     try {
-      final turmas = await _turmaService.listarTurmas(apenasAtivas: true);
+      // Na edição, a turma fica travada e pode estar inativa: lista todas
+      // para sempre encontrar a original.
+      final turmas =
+          await _turmaService.listarTurmas(apenasAtivas: !_editando);
       if (!mounted) return;
       setState(() {
         _turmas = turmas;
         _carregandoTurmas = false;
       });
+      _tentarPreencherEdicao();
     } catch (e) {
       if (!mounted) return;
       setState(() => _carregandoTurmas = false);
@@ -90,10 +103,94 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
         _disciplinas = disciplinas;
         _carregandoDisciplinas = false;
       });
+      _tentarPreencherEdicao();
     } catch (e) {
       if (!mounted) return;
       setState(() => _carregandoDisciplinas = false);
       _mostrarAviso('Erro ao carregar disciplinas: $e');
+    }
+  }
+
+  /// Repovoa os campos com os dados da prova em edição, assim que disciplinas
+  /// e turmas terminam de carregar. Roda só uma vez.
+  void _tentarPreencherEdicao() {
+    if (!_editando || _edicaoPreenchida) return;
+    if (_carregandoDisciplinas || _carregandoTurmas) return;
+    _edicaoPreenchida = true;
+
+    final prova = widget.provaParaEditar!;
+    final avisos = <String>[];
+
+    _tituloController.text = prova.titulo;
+
+    Turma? turma;
+    for (final t in _turmas) {
+      if (t.id == prova.turmaId) {
+        turma = t;
+        break;
+      }
+    }
+    if (turma == null) avisos.add('a turma original não está mais disponível');
+
+    Disciplina? disciplina;
+    for (final d in _disciplinas) {
+      if (d.id == prova.disciplinaId) {
+        disciplina = d;
+        break;
+      }
+    }
+
+    Assunto? assunto;
+    if (disciplina != null) {
+      if (prova.assuntoId.isEmpty) {
+        // Sentinela de "Todos os assuntos" gravada na geração.
+        assunto = _todosAssuntos;
+      } else {
+        for (final a in disciplina.assuntos) {
+          if (a.id == prova.assuntoId) {
+            assunto = a;
+            break;
+          }
+        }
+      }
+    }
+    if (disciplina == null || assunto == null) {
+      avisos.add('a disciplina ou o assunto original não existe mais');
+    }
+
+    // Casa os ids salvos com as instâncias carregadas (igualdade por referência).
+    final selecionadas = <Questao>{};
+    if (disciplina != null) {
+      final ids = prova.questoesIds.toSet();
+      for (final a in disciplina.assuntos) {
+        for (final q in a.questoes) {
+          if (ids.contains(q.id)) selecionadas.add(q);
+        }
+      }
+      if (selecionadas.length < prova.questoesIds.length) {
+        avisos.add('algumas questões originais não existem mais');
+      }
+    }
+
+    final sorteia = prova.sorteiaQuestoes;
+
+    setState(() {
+      _turmaSelecionada = turma;
+      _disciplinaSelecionada = disciplina;
+      _assuntoSelecionado = assunto;
+      _questoesSelecionadas
+        ..clear()
+        ..addAll(selecionadas);
+      _sortearQuestoes = sorteia;
+      if (sorteia) {
+        _questoesPorProvaController.text = '${prova.questoesPorProva}';
+      }
+      _embaralharQuestoes = prova.embaralharQuestoes;
+      _embaralharAlternativas = prova.embaralharAlternativas;
+    });
+
+    if (avisos.isNotEmpty) {
+      _mostrarAviso('Atenção: ${avisos.join('; ')}.');
     }
   }
 
@@ -151,7 +248,8 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
     }
 
     final prova = Prova(
-      id: gerarIdProva(),
+      // Na edição, mantém o mesmo código para sobrescrever a prova existente.
+      id: _editando ? widget.provaParaEditar!.id : gerarIdProva(),
       titulo: _tituloController.text.trim(),
       turma: _turmaSelecionada!,
       assunto: _todosSelecionado
@@ -168,7 +266,8 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => VisualizacaoEmbaralhamento(prova: prova),
+        builder: (context) =>
+            VisualizacaoEmbaralhamento(prova: prova, edicao: _editando),
       ),
     );
   }
@@ -193,7 +292,7 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Configuração da Prova'),
+        title: Text(_editando ? 'Editar Prova' : 'Configuração da Prova'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -240,7 +339,16 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
                           ),
                         ))
                     .toList(),
-                onChanged: (turma) => setState(() => _turmaSelecionada = turma),
+                // Na edição a turma fica travada (muda o nº de alunos/versões).
+                onChanged: _editando
+                    ? null
+                    : (turma) => setState(() => _turmaSelecionada = turma),
+                disabledHint: _turmaSelecionada == null
+                    ? null
+                    : Text(
+                        _turmaSelecionada!.nomeTurma,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                 validator: (value) => value == null ? 'Selecione uma turma' : null,
               ),
               const SizedBox(height: 16),
@@ -334,8 +442,10 @@ class _ConfiguracaoProvaState extends State<ConfiguracaoProva> {
               // Botão Principal
               ElevatedButton.icon(
                 onPressed: _gerarProvas,
-                icon: const Icon(Icons.auto_awesome),
-                label: const Text('Gerar Provas da Turma'),
+                icon: Icon(_editando ? Icons.save : Icons.auto_awesome),
+                label: Text(
+                  _editando ? 'Salvar Alterações' : 'Gerar Provas da Turma',
+                ),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),

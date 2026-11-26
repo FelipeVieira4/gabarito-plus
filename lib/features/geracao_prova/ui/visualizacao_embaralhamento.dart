@@ -9,9 +9,16 @@ import 'package:gabarito_plus/features/provas/pdf/prova_pdf.dart';
 import 'package:gabarito_plus/features/provas/service/prova_repository.dart';
 
 class VisualizacaoEmbaralhamento extends StatefulWidget {
-  const VisualizacaoEmbaralhamento({super.key, required this.prova});
+  const VisualizacaoEmbaralhamento({
+    super.key,
+    required this.prova,
+    this.edicao = false,
+  });
 
   final Prova prova;
+
+  /// Edição: salva sobre a prova existente (substituir) em vez de criar nova.
+  final bool edicao;
 
   @override
   State<VisualizacaoEmbaralhamento> createState() =>
@@ -40,7 +47,11 @@ class _VisualizacaoEmbaralhamentoState
   Future<bool> _salvarProvas() async {
     setState(() => _salvando = true);
     try {
-      await ProvaRepository.instancia.salvar(widget.prova, _versoes);
+      if (widget.edicao) {
+        await ProvaRepository.instancia.substituir(widget.prova, _versoes);
+      } else {
+        await ProvaRepository.instancia.salvar(widget.prova, _versoes);
+      }
     } catch (e) {
       if (!mounted) return false;
       setState(() => _salvando = false);
@@ -62,9 +73,15 @@ class _VisualizacaoEmbaralhamentoState
       _salvando = false;
       _salva = true;
     });
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('${_versoes.length} provas salvas')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          widget.edicao
+              ? 'Alterações salvas (${_versoes.length} provas)'
+              : '${_versoes.length} provas salvas',
+        ),
+      ),
+    );
     return true;
   }
 

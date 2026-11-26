@@ -29,6 +29,14 @@ abstract class ProvaRepository {
   /// Grava a prova e todas as versões juntas: ou entra tudo, ou nada.
   Future<void> salvar(Prova prova, List<VersaoProva> versoes);
 
+  /// Configuração salva de uma prova (ids e flags), ou null se não existir.
+  /// Usada para repovoar a tela de configuração ao editar.
+  Future<ProvaSalva?> buscarProva(String provaId);
+
+  /// Sobrescreve uma prova já salva e suas versões, mantendo o mesmo id e
+  /// a data de criação original. Usada na edição.
+  Future<void> substituir(Prova prova, List<VersaoProva> versoes);
+
   /// Gabarito da versão com esse código, ou null se não existir.
   Future<GabaritoLido?> buscarGabarito(String codigoVersao);
 
@@ -61,6 +69,44 @@ class ProvaRepositoryFirestore implements ProvaRepository {
     batch.set(provaRef, {...prova.toMap(), 'quantidadeVersoes': versoes.length});
     for (final versao in versoes) {
       batch.set(provaRef.collection('versoes').doc(versao.codigo), versao.toMap());
+    }
+    await batch.commit();
+  }
+
+  @override
+  Future<ProvaSalva?> buscarProva(String provaId) async {
+    final doc = await _provas.doc(provaId).get();
+    if (!doc.exists) return null;
+    return ProvaSalva.fromMap(doc.id, doc.data() ?? {});
+  }
+
+  @override
+  Future<void> substituir(Prova prova, List<VersaoProva> versoes) async {
+    final provaRef = _provas.doc(prova.id);
+
+    final batch = _db.batch();
+    // Mantém a data de criação original (merge sem criadaEm).
+    batch.set(
+      provaRef,
+      {
+        ...prova.toMap()..remove('criadaEm'),
+        'quantidadeVersoes': versoes.length,
+      },
+      SetOptions(merge: true),
+    );
+
+    // Apaga versões antigas que não estão mais na nova lista (turma menor).
+    final versoesRef = provaRef.collection('versoes');
+    final codigosNovos = versoes.map((v) => v.codigo).toSet();
+    final antigas = await versoesRef.get();
+    for (final doc in antigas.docs) {
+      if (!codigosNovos.contains(doc.id)) {
+        batch.delete(doc.reference);
+      }
+    }
+
+    for (final versao in versoes) {
+      batch.set(versoesRef.doc(versao.codigo), versao.toMap());
     }
     await batch.commit();
   }
