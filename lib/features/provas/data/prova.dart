@@ -62,3 +62,53 @@ class Prova {
         'criadaEm': FieldValue.serverTimestamp(),
       };
 }
+
+/// Configuração salva de uma prova, lida do Firestore só com os ids e flags.
+/// Usada para repovoar a tela de configuração ao editar uma prova (a
+/// [Prova] completa precisa de turma, assunto e questões, que a tela
+/// recarrega pelos serviços).
+class ProvaSalva {
+  final String id;
+  final String titulo;
+  final String turmaId;
+  final String assuntoId;
+  final String disciplinaId;
+  final List<String> questoesIds;
+
+  /// Questões por prova salvas. Sorteia quando for menor que [questoesIds].
+  final int? questoesPorProva;
+  final bool embaralharQuestoes;
+  final bool embaralharAlternativas;
+
+  ProvaSalva({
+    required this.id,
+    required this.titulo,
+    required this.turmaId,
+    required this.assuntoId,
+    required this.disciplinaId,
+    required this.questoesIds,
+    this.questoesPorProva,
+    required this.embaralharQuestoes,
+    required this.embaralharAlternativas,
+  });
+
+  /// [dados] é o formato de [Prova.toMap()].
+  factory ProvaSalva.fromMap(String id, Map<String, dynamic> dados) {
+    return ProvaSalva(
+      id: id,
+      titulo: dados['titulo'] ?? '',
+      turmaId: dados['turmaId'] ?? '',
+      assuntoId: dados['assuntoId'] ?? '',
+      disciplinaId: dados['disciplinaId'] ?? '',
+      questoesIds:
+          (dados['questoesIds'] as List<dynamic>?)?.cast<String>() ?? const [],
+      questoesPorProva: (dados['questoesPorProva'] as num?)?.toInt(),
+      embaralharQuestoes: dados['embaralharQuestoes'] ?? false,
+      embaralharAlternativas: dados['embaralharAlternativas'] ?? false,
+    );
+  }
+
+  /// Sorteia parte do banco quando salva com menos questões que o total.
+  bool get sorteiaQuestoes =>
+      questoesPorProva != null && questoesPorProva! < questoesIds.length;
+}

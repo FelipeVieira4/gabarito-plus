@@ -21,6 +21,27 @@ class ProvaRepositoryMemoria implements ProvaRepository {
   }
 
   @override
+  Future<ProvaSalva?> buscarProva(String provaId) async {
+    final dados = _provas[provaId];
+    if (dados == null) return null;
+    return ProvaSalva.fromMap(provaId, dados);
+  }
+
+  @override
+  Future<void> substituir(Prova prova, List<VersaoProva> versoes) async {
+    _provas[prova.id] = prova.toMap();
+    // Remove versões antigas que não estão na nova lista.
+    final codigosNovos = versoes.map((v) => v.codigo).toSet();
+    _versoes.removeWhere(
+      (codigo, _) => codigo.startsWith('${prova.id}-') &&
+          !codigosNovos.contains(codigo),
+    );
+    for (final versao in versoes) {
+      _versoes[versao.codigo] = versao;
+    }
+  }
+
+  @override
   Future<GabaritoLido?> buscarGabarito(String codigoVersao) async {
     final codigo = codigoVersao.trim().toUpperCase();
     final versao = _versoes[codigo];
